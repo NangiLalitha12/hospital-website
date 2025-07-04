@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Phone, Mail } from 'lucide-react';
-import { getPatientAppointments } from '@/services/firebase';
+import { getPatientAppointments, getAppointments } from '@/services/firebase';
 import { Appointment } from '@/types';
 import { format } from 'date-fns';
 
@@ -18,17 +18,36 @@ const PatientPortal = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email.trim()) return;
 
     console.log('Searching for appointments with email:', email);
     setLoading(true);
     try {
-      const patientAppointments = await getPatientAppointments(email);
-      console.log('Found appointments:', patientAppointments);
-      setAppointments(patientAppointments);
+      // First, let's get all appointments to debug
+      const allAppointments = await getAppointments();
+      console.log('All appointments in database:', allAppointments);
+      console.log('Searching for email matches with:', email);
+      
+      // Check which appointments match the email
+      const matchingAppointments = allAppointments.filter(apt => 
+        apt.patientEmail && apt.patientEmail.toLowerCase() === email.toLowerCase()
+      );
+      console.log('Matching appointments by manual filter:', matchingAppointments);
+
+      // Also try the original query method
+      const patientAppointments = await getPatientAppointments(email.trim());
+      console.log('Patient appointments from query:', patientAppointments);
+      
+      // Use the query result, but fallback to manual filter if needed
+      const finalAppointments = patientAppointments.length > 0 ? patientAppointments : matchingAppointments;
+      console.log('Final appointments to display:', finalAppointments);
+      
+      setAppointments(finalAppointments);
       setSearched(true);
     } catch (error) {
       console.error('Error fetching appointments:', error);
+      setAppointments([]);
+      setSearched(true);
     } finally {
       setLoading(false);
     }
@@ -92,7 +111,10 @@ const PatientPortal = () => {
                   <p className="text-gray-500 mb-2">No Appointments Found</p>
                   <p className="text-sm text-gray-400">
                     It looks like there are no appointments linked to this email address.
-                    Please make sure you entered the same email address you used while booking.
+                    Please make sure you entered the exact same email address you used while booking.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Email searched: {email}
                   </p>
                 </div>
               ) : (

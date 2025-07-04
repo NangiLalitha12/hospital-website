@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,12 +23,23 @@ import {
   addHealthRecord,
   deleteHealthRecord,
   getMessages,
-  deleteMessage
+  deleteMessage,
+  getHomeContent,
+  updateHomeContent
 } from '@/services/firebase';
-import { Service, Doctor, Appointment, HealthRecord, ContactMessage } from '@/types';
+import { Service, Doctor, Appointment, HealthRecord, ContactMessage, HomeContent } from '@/types';
 import { format } from 'date-fns';
 
 const AdminDashboard = () => {
+  // Home Content State
+  const [homeContent, setHomeContent] = useState<HomeContent>({
+    bannerTitle: '',
+    bannerSubtitle: '',
+    bannerImage: '',
+    welcomeMessage: '',
+    introText: ''
+  });
+
   // Services State and Functions
   const [services, setServices] = useState<Service[]>([]);
   const [newService, setNewService] = useState<Omit<Service, 'id'>>({ 
@@ -74,6 +84,13 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       console.log('Fetching admin dashboard data...');
       
+      // Fetch Home Content
+      const homeData = await getHomeContent();
+      console.log('Home content fetched:', homeData);
+      if (homeData) {
+        setHomeContent(homeData);
+      }
+
       // Fetch Services
       const servicesData = await getServices();
       console.log('Services fetched:', servicesData);
@@ -102,6 +119,24 @@ const AdminDashboard = () => {
 
     fetchData();
   }, []);
+
+  // --- Home Content Management ---
+  const handleUpdateHomeContent = async () => {
+    try {
+      await updateHomeContent(homeContent);
+      toast({
+        title: "Home Content Updated",
+        description: "Home page content has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating home content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update home content.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // --- Services Management ---
   const handleAddService = async () => {
@@ -261,14 +296,77 @@ const AdminDashboard = () => {
           <p className="text-gray-600">Manage your hospital website content</p>
         </div>
 
-        <Tabs defaultValue="services" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="home" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="health-records">Health Records</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
+
+          {/* Home Content Tab */}
+          <TabsContent value="home">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Home Page Content</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="banner-title">Banner Title</Label>
+                    <Input
+                      id="banner-title"
+                      value={homeContent.bannerTitle}
+                      onChange={(e) => setHomeContent({ ...homeContent, bannerTitle: e.target.value })}
+                      placeholder="Your Trusted Healthcare Partner"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="banner-subtitle">Banner Subtitle</Label>
+                    <Input
+                      id="banner-subtitle"
+                      value={homeContent.bannerSubtitle}
+                      onChange={(e) => setHomeContent({ ...homeContent, bannerSubtitle: e.target.value })}
+                      placeholder="Providing exceptional healthcare services with compassion and expertise"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="banner-image">Banner Image URL</Label>
+                    <Input
+                      id="banner-image"
+                      value={homeContent.bannerImage}
+                      onChange={(e) => setHomeContent({ ...homeContent, bannerImage: e.target.value })}
+                      placeholder="https://example.com/banner-image.jpg"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="welcome-message">Welcome Message</Label>
+                    <Input
+                      id="welcome-message"
+                      value={homeContent.welcomeMessage}
+                      onChange={(e) => setHomeContent({ ...homeContent, welcomeMessage: e.target.value })}
+                      placeholder="Welcome to Our Healthcare Center"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="intro-text">Introduction Text</Label>
+                    <Textarea
+                      id="intro-text"
+                      value={homeContent.introText}
+                      onChange={(e) => setHomeContent({ ...homeContent, introText: e.target.value })}
+                      placeholder="We are committed to providing the highest quality healthcare services..."
+                      rows={4}
+                    />
+                  </div>
+                  <Button onClick={handleUpdateHomeContent}>
+                    Update Home Content
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Services Tab */}
           <TabsContent value="services">
