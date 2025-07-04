@@ -1,9 +1,29 @@
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Shield, FileText, Download } from 'lucide-react';
+import { Shield, FileText, Download, Upload } from 'lucide-react';
+import { getHealthRecords } from '@/services/firebase';
+import { HealthRecord } from '@/types';
 
 const HealthRecords = () => {
+  const [records, setRecords] = useState<HealthRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const recordsData = await getHealthRecords();
+        setRecords(recordsData);
+      } catch (error) {
+        console.error('Error fetching health records:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecords();
+  }, []);
+
   return (
     <div className="min-h-screen py-12 bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,81 +49,83 @@ const HealthRecords = () => {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Upload Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Upload Health Records
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-600 text-sm">
-                Upload your medical documents, lab results, and prescriptions for easy access during appointments.
-              </p>
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">Drag and drop files here, or</p>
-                <Button variant="outline">Choose Files</Button>
-              </div>
-              
-              <div className="text-xs text-gray-500">
-                <p>Supported formats: PDF, JPG, PNG, DOC</p>
-                <p>Maximum file size: 10MB</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Access Records */}
+          {/* Available Records */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Access Your Records
+                Available Health Records
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? (
+                <p className="text-gray-600 text-sm">Loading records...</p>
+              ) : records.length > 0 ? (
+                <div className="space-y-3">
+                  {records.map((record) => (
+                    <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <span className="text-sm font-medium">{record.title}</span>
+                          <p className="text-xs text-gray-500">{record.description}</p>
+                          <p className="text-xs text-gray-400">
+                            Uploaded: {record.uploadDate.toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.open(record.fileUrl, '_blank')}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">No health records available</p>
+                  <p className="text-sm text-gray-500">
+                    Records will appear here once uploaded by your healthcare provider
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Patient Services */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Patient Services
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-gray-600 text-sm">
-                View and download your medical history, test results, and treatment plans.
+                Access additional patient services and request medical information.
               </p>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">Lab Results - Dec 2024</span>
-                  </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
+                <Button className="w-full justify-start" variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Request Medical Records
+                </Button>
                 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">Prescription History</span>
-                  </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
+                <Button className="w-full justify-start" variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Lab Results
+                </Button>
                 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">Medical History</span>
-                  </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
+                <Button className="w-full justify-start" variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Prescription History
+                </Button>
               </div>
-              
-              <Button className="w-full">Request Medical Records</Button>
             </CardContent>
           </Card>
         </div>

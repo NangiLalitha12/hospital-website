@@ -34,6 +34,8 @@ export interface ContactInfo {
   hours: string;
   emergencyNumber: string;
   chatWidget: string;
+  location?: string;
+  getInTouchMessage?: string;
 }
 
 export interface Appointment {
@@ -47,5 +49,32 @@ export interface Appointment {
   time: string;
   reason: string;
   status: 'pending' | 'confirmed' | 'cancelled';
+  createdAt: Date;
+}
+
+export interface HealthRecord {
+  id?: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+  fileName: string;
+  uploadDate: Date;
+  fileType: string;
+}
+
+export interface ContactMessage {
+  id?: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  createdAt: Date;
+}
+
+export interface User {
+  id?: string;
+  name: string;
+  email: string;
+  phone: string;
   createdAt: Date;
 }
