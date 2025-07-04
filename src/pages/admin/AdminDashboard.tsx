@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,12 +32,24 @@ import { format } from 'date-fns';
 const AdminDashboard = () => {
   // Services State and Functions
   const [services, setServices] = useState<Service[]>([]);
-  const [newService, setNewService] = useState<Omit<Service, 'id'>>({ name: '', description: '', price: 0 });
+  const [newService, setNewService] = useState<Omit<Service, 'id'>>({ 
+    name: '', 
+    description: '', 
+    image: '', 
+    icon: '' 
+  });
   const [editService, setEditService] = useState<Service | null>(null);
 
   // Doctors State and Functions
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [newDoctor, setNewDoctor] = useState<Omit<Doctor, 'id'>>({ name: '', specialty: '', bio: '', image: '' });
+  const [newDoctor, setNewDoctor] = useState<Omit<Doctor, 'id'>>({ 
+    name: '', 
+    specialty: '', 
+    bio: '', 
+    image: '', 
+    availability: [], 
+    qualifications: [] 
+  });
   const [editDoctor, setEditDoctor] = useState<Doctor | null>(null);
 
   // Appointments State and Functions
@@ -44,7 +57,14 @@ const AdminDashboard = () => {
 
   // Health Records State and Functions
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
-  const [newHealthRecord, setNewHealthRecord] = useState<Omit<HealthRecord, 'id'>>({ title: '', description: '', fileUrl: '', uploadDate: new Date() });
+  const [newHealthRecord, setNewHealthRecord] = useState<Omit<HealthRecord, 'id'>>({ 
+    title: '', 
+    description: '', 
+    fileUrl: '', 
+    fileName: '', 
+    fileType: '', 
+    uploadDate: new Date() 
+  });
   const [uploading, setUploading] = useState(false);
 
   // Messages State and Functions
@@ -52,24 +72,31 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      console.log('Fetching admin dashboard data...');
+      
       // Fetch Services
       const servicesData = await getServices();
+      console.log('Services fetched:', servicesData);
       setServices(servicesData);
 
       // Fetch Doctors
       const doctorsData = await getDoctors();
+      console.log('Doctors fetched:', doctorsData);
       setDoctors(doctorsData);
 
       // Fetch Appointments
       const appointmentsData = await getAppointments();
+      console.log('Appointments fetched:', appointmentsData);
       setAppointments(appointmentsData);
 
       // Fetch Health Records
       const healthRecordsData = await getHealthRecords();
+      console.log('Health records fetched:', healthRecordsData);
       setHealthRecords(healthRecordsData);
 
       // Fetch Messages
       const messagesData = await getMessages();
+      console.log('Messages fetched:', messagesData);
       setMessages(messagesData);
     };
 
@@ -90,7 +117,7 @@ const AdminDashboard = () => {
     await addService(newService);
     const updatedServices = await getServices();
     setServices(updatedServices);
-    setNewService({ name: '', description: '', price: 0 });
+    setNewService({ name: '', description: '', image: '', icon: '' });
     toast({
       title: "Service Added",
       description: "New service has been added successfully.",
@@ -132,7 +159,7 @@ const AdminDashboard = () => {
     await addDoctor(newDoctor);
     const updatedDoctors = await getDoctors();
     setDoctors(updatedDoctors);
-    setNewDoctor({ name: '', specialty: '', bio: '', image: '' });
+    setNewDoctor({ name: '', specialty: '', bio: '', image: '', availability: [], qualifications: [] });
     toast({
       title: "Doctor Added",
       description: "New doctor has been added successfully.",
@@ -188,7 +215,7 @@ const AdminDashboard = () => {
       await addHealthRecord(newHealthRecord);
       const updatedHealthRecords = await getHealthRecords();
       setHealthRecords(updatedHealthRecords);
-      setNewHealthRecord({ title: '', description: '', fileUrl: '', uploadDate: new Date() });
+      setNewHealthRecord({ title: '', description: '', fileUrl: '', fileName: '', fileType: '', uploadDate: new Date() });
       toast({
         title: "Health Record Added",
         description: "New health record has been added successfully.",
@@ -235,7 +262,7 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="services" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
@@ -272,12 +299,19 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="price">Price</Label>
+                        <Label htmlFor="image">Image URL</Label>
                         <Input
-                          type="number"
-                          id="price"
-                          value={newService.price}
-                          onChange={(e) => setNewService({ ...newService, price: parseFloat(e.target.value) })}
+                          id="image"
+                          value={newService.image}
+                          onChange={(e) => setNewService({ ...newService, image: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="icon">Icon</Label>
+                        <Input
+                          id="icon"
+                          value={newService.icon}
+                          onChange={(e) => setNewService({ ...newService, icon: e.target.value })}
                         />
                       </div>
                       <Button onClick={handleAddService}>Add Service</Button>
@@ -305,7 +339,7 @@ const AdminDashboard = () => {
                             <Button
                               variant="destructive"
                               size="icon"
-                              onClick={() => handleDeleteService(service.id)}
+                              onClick={() => handleDeleteService(service.id!)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -339,12 +373,19 @@ const AdminDashboard = () => {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="edit-price">Price</Label>
+                          <Label htmlFor="edit-image">Image URL</Label>
                           <Input
-                            type="number"
-                            id="edit-price"
-                            value={editService.price}
-                            onChange={(e) => setEditService({ ...editService, price: parseFloat(e.target.value) })}
+                            id="edit-image"
+                            value={editService.image}
+                            onChange={(e) => setEditService({ ...editService, image: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-icon">Icon</Label>
+                          <Input
+                            id="edit-icon"
+                            value={editService.icon}
+                            onChange={(e) => setEditService({ ...editService, icon: e.target.value })}
                           />
                         </div>
                         <div className="flex justify-end space-x-2">
@@ -374,33 +415,33 @@ const AdminDashboard = () => {
                     <h3 className="text-lg font-semibold mb-2">Add New Doctor</h3>
                     <div className="space-y-2">
                       <div>
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="doctor-name">Name</Label>
                         <Input
-                          id="name"
+                          id="doctor-name"
                           value={newDoctor.name}
                           onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="specialty">Specialty</Label>
+                        <Label htmlFor="doctor-specialty">Specialty</Label>
                         <Input
-                          id="specialty"
+                          id="doctor-specialty"
                           value={newDoctor.specialty}
                           onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="bio">Bio</Label>
+                        <Label htmlFor="doctor-bio">Bio</Label>
                         <Textarea
-                          id="bio"
+                          id="doctor-bio"
                           value={newDoctor.bio}
                           onChange={(e) => setNewDoctor({ ...newDoctor, bio: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="image">Image URL</Label>
+                        <Label htmlFor="doctor-image">Image URL</Label>
                         <Input
-                          id="image"
+                          id="doctor-image"
                           value={newDoctor.image}
                           onChange={(e) => setNewDoctor({ ...newDoctor, image: e.target.value })}
                         />
@@ -430,7 +471,7 @@ const AdminDashboard = () => {
                             <Button
                               variant="destructive"
                               size="icon"
-                              onClick={() => handleDeleteDoctor(doctor.id)}
+                              onClick={() => handleDeleteDoctor(doctor.id!)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -448,33 +489,33 @@ const AdminDashboard = () => {
                       <h3 className="text-lg font-semibold mb-2">Edit Doctor</h3>
                       <div className="space-y-2">
                         <div>
-                          <Label htmlFor="edit-name">Name</Label>
+                          <Label htmlFor="edit-doctor-name">Name</Label>
                           <Input
-                            id="edit-name"
+                            id="edit-doctor-name"
                             value={editDoctor.name}
                             onChange={(e) => setEditDoctor({ ...editDoctor, name: e.target.value })}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="edit-specialty">Specialty</Label>
+                          <Label htmlFor="edit-doctor-specialty">Specialty</Label>
                           <Input
-                            id="edit-specialty"
+                            id="edit-doctor-specialty"
                             value={editDoctor.specialty}
                             onChange={(e) => setEditDoctor({ ...editDoctor, specialty: e.target.value })}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="edit-bio">Bio</Label>
+                          <Label htmlFor="edit-doctor-bio">Bio</Label>
                           <Textarea
-                            id="edit-bio"
+                            id="edit-doctor-bio"
                             value={editDoctor.bio}
                             onChange={(e) => setEditDoctor({ ...editDoctor, bio: e.target.value })}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="edit-image">Image URL</Label>
+                          <Label htmlFor="edit-doctor-image">Image URL</Label>
                           <Input
-                            id="edit-image"
+                            id="edit-doctor-image"
                             value={editDoctor.image}
                             onChange={(e) => setEditDoctor({ ...editDoctor, image: e.target.value })}
                           />
@@ -544,7 +585,7 @@ const AdminDashboard = () => {
                             <select
                               className="border rounded px-2 py-1"
                               value={appointment.status}
-                              onChange={(e) => handleUpdateAppointmentStatus(appointment.id, e.target.value as Appointment['status'])}
+                              onChange={(e) => handleUpdateAppointmentStatus(appointment.id!, e.target.value as Appointment['status'])}
                             >
                               <option value="pending">Pending</option>
                               <option value="confirmed">Confirmed</option>
@@ -573,28 +614,44 @@ const AdminDashboard = () => {
                     <h3 className="text-lg font-semibold mb-2">Add New Health Record</h3>
                     <div className="space-y-2">
                       <div>
-                        <Label htmlFor="title">Title</Label>
+                        <Label htmlFor="record-title">Title</Label>
                         <Input
-                          id="title"
+                          id="record-title"
                           value={newHealthRecord.title}
                           onChange={(e) => setNewHealthRecord({ ...newHealthRecord, title: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="record-description">Description</Label>
                         <Textarea
-                          id="description"
+                          id="record-description"
                           value={newHealthRecord.description}
                           onChange={(e) => setNewHealthRecord({ ...newHealthRecord, description: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="fileUrl">File URL</Label>
+                        <Label htmlFor="record-fileUrl">File URL</Label>
                         <Input
-                          id="fileUrl"
+                          id="record-fileUrl"
                           type="url"
                           value={newHealthRecord.fileUrl}
                           onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileUrl: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="record-fileName">File Name</Label>
+                        <Input
+                          id="record-fileName"
+                          value={newHealthRecord.fileName}
+                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="record-fileType">File Type</Label>
+                        <Input
+                          id="record-fileType"
+                          value={newHealthRecord.fileType}
+                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileType: e.target.value })}
                         />
                       </div>
                       <Button onClick={handleAddHealthRecord} disabled={uploading}>
@@ -612,12 +669,13 @@ const AdminDashboard = () => {
                           <div>
                             <p className="font-medium">{record.title}</p>
                             <p className="text-sm text-gray-500">{record.description}</p>
+                            <p className="text-xs text-gray-400">{record.fileName}</p>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="destructive"
                               size="icon"
-                              onClick={() => handleDeleteHealthRecord(record.id)}
+                              onClick={() => handleDeleteHealthRecord(record.id!)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -635,7 +693,7 @@ const AdminDashboard = () => {
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle>Manage Messages</CardTitle>
+                <CardTitle>Contact Messages</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -649,7 +707,13 @@ const AdminDashboard = () => {
                           Email
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Phone
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Message
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
                         </th>
                         <th className="px-6 py-3 bg-gray-50"></th>
                       </tr>
@@ -663,14 +727,20 @@ const AdminDashboard = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {message.email}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {message.phone}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                             {message.message}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {format(message.createdAt, 'PPP')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <Button
                               variant="destructive"
                               size="icon"
-                              onClick={() => handleDeleteMessage(message.id)}
+                              onClick={() => handleDeleteMessage(message.id!)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
