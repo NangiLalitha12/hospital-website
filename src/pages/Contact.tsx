@@ -1,25 +1,24 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Phone, Mail, Clock, MessageSquare } from 'lucide-react';
-import { getContactInfo, addMessage } from '@/services/firebase';
-import { ContactInfo } from '@/types';
+import { addMessage } from '@/services/firebase';
 import { toast } from '@/hooks/use-toast';
 
 const Contact = () => {
-  const [contactInfo, setContactInfo] = useState<ContactInfo>({
+  // Default contact information
+  const contactInfo = {
     phone: '(555) 123-4567',
     email: 'info@medicare.com',
     address: '123 Healthcare Street, Medical District, City, State 12345',
     hours: 'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 4:00 PM\nSunday: Closed',
     emergencyNumber: '911',
-    chatWidget: '',
-    location: '',
     getInTouchMessage: 'We\'d love to hear from you. Send us a message and we\'ll respond as soon as possible.',
-  });
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -29,20 +28,6 @@ const Contact = () => {
   });
 
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchContactInfo = async () => {
-      const info = await getContactInfo();
-      if (info) {
-        // Keep default values for fields not set in admin, but use admin values when available
-        setContactInfo(prev => ({
-          ...prev,
-          ...info
-        }));
-      }
-    };
-    fetchContactInfo();
-  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -160,29 +145,6 @@ const Contact = () => {
                 <p className="text-gray-600 whitespace-pre-line">{contactInfo.hours}</p>
               </CardContent>
             </Card>
-
-            {/* Location Map */}
-            {contactInfo.location && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Our Location</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video">
-                    <iframe
-                      src={contactInfo.location}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="rounded-lg"
-                    ></iframe>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Contact Form */}
@@ -193,9 +155,7 @@ const Contact = () => {
                   <MessageSquare className="h-5 w-5" />
                   Send us a Message
                 </CardTitle>
-                {contactInfo.getInTouchMessage && (
-                  <p className="text-gray-600">{contactInfo.getInTouchMessage}</p>
-                )}
+                <p className="text-gray-600">{contactInfo.getInTouchMessage}</p>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -265,14 +225,6 @@ const Contact = () => {
             </Card>
           </div>
         </div>
-
-        {/* Chat Widget */}
-        {contactInfo.chatWidget && (
-          <div 
-            className="mt-12"
-            dangerouslySetInnerHTML={{ __html: contactInfo.chatWidget }}
-          />
-        )}
       </div>
     </div>
   );

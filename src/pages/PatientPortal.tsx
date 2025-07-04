@@ -20,9 +20,11 @@ const PatientPortal = () => {
     e.preventDefault();
     if (!email) return;
 
+    console.log('Searching for appointments with email:', email);
     setLoading(true);
     try {
       const patientAppointments = await getPatientAppointments(email);
+      console.log('Found appointments:', patientAppointments);
       setAppointments(patientAppointments);
       setSearched(true);
     } catch (error) {
@@ -87,7 +89,11 @@ const PatientPortal = () => {
             <CardContent>
               {appointments.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No appointments found for this email address.</p>
+                  <p className="text-gray-500 mb-2">No Appointments Found</p>
+                  <p className="text-sm text-gray-400">
+                    It looks like there are no appointments linked to this email address.
+                    Please make sure you entered the same email address you used while booking.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
