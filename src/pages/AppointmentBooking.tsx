@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,8 +67,11 @@ const AppointmentBooking = () => {
       const existingUser = await getUserByEmail(signupData.email);
       
       if (!existingUser) {
-        // Create new user
-        await addUser(signupData);
+        // Create new user with createdAt field
+        await addUser({
+          ...signupData,
+          createdAt: new Date()
+        });
         toast({
           title: "Account Created",
           description: "Your account has been created successfully.",

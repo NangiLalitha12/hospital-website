@@ -996,7 +996,7 @@ const HealthRecordsManager = () => {
   );
 };
 
-// Enhanced Contact Manager Component
+// Contact Manager Component
 const ContactManager = () => {
   const [contact, setContact] = useState<ContactInfo>({
     phone: '',
@@ -1050,60 +1050,12 @@ const ContactManager = () => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              value={contact.phone}
-              onChange={(e) => setContact(prev => ({ ...prev, phone: e.target.value }))}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={contact.email}
-              onChange={(e) => setContact(prev => ({ ...prev, email: e.target.value }))}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Textarea
-              id="address"
-              value={contact.address}
-              onChange={(e) => setContact(prev => ({ ...prev, address: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
-          <div>
             <Label htmlFor="location">Location (Map Embed URL)</Label>
             <Input
               id="location"
               value={contact.location || ''}
               onChange={(e) => setContact(prev => ({ ...prev, location: e.target.value }))}
               placeholder="https://www.google.com/maps/embed?..."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="hours">Operating Hours</Label>
-            <Textarea
-              id="hours"
-              value={contact.hours}
-              onChange={(e) => setContact(prev => ({ ...prev, hours: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="emergencyNumber">Emergency Number</Label>
-            <Input
-              id="emergencyNumber"
-              value={contact.emergencyNumber}
-              onChange={(e) => setContact(prev => ({ ...prev, emergencyNumber: e.target.value }))}
             />
           </div>
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,11 @@ const Contact = () => {
     const fetchContactInfo = async () => {
       const info = await getContactInfo();
       if (info) {
-        setContactInfo(info);
+        // Keep default values for fields not set in admin, but use admin values when available
+        setContactInfo(prev => ({
+          ...prev,
+          ...info
+        }));
       }
     };
     fetchContactInfo();
