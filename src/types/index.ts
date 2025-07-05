@@ -48,7 +48,7 @@ export interface Appointment {
   date: string;
   time: string;
   reason: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   createdAt: Date;
   consultationFee?: number;
   feeStatus?: 'pending' | 'paid' | 'waived';

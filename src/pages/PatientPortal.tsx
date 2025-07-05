@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -218,7 +217,7 @@ const PatientPortal = () => {
                               {appointment.feeStatus === 'pending' && (
                                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
                                   <p className="text-sm text-yellow-800">
-                                    💰 <strong>Payment Required:</strong> Your consultation fee of ${appointment.consultationFee} is pending. Please contact our billing department to complete the payment.
+                                    💰 <strong>Payment Required:</strong> Your consultation fee of ${appointment.consultationFee} – Please pay at the OP desk when you visit the hospital.
                                   </p>
                                 </div>
                               )}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Calendar, Clock, User, Phone, Mail, FileText, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Clock, User, Phone, Mail, FileText, Upload, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { 
@@ -348,6 +347,10 @@ const AdminDashboard = () => {
     });
   };
 
+  // Get completed appointments for history
+  const completedAppointments = appointments.filter(apt => apt.status === 'completed');
+  const activeAppointments = appointments.filter(apt => apt.status !== 'completed');
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -357,13 +360,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="home" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="health-records">Health Records</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
           {/* Home Content Tab */}
@@ -744,7 +748,7 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {appointments.map((appointment) => (
+                      {activeAppointments.map((appointment) => (
                         <tr key={appointment.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {appointment.patientName}
@@ -773,6 +777,7 @@ const AdminDashboard = () => {
                               <option value="pending">Pending</option>
                               <option value="confirmed">Confirmed</option>
                               <option value="cancelled">Cancelled</option>
+                              <option value="completed">Completed</option>
                             </select>
                           </td>
                         </tr>
@@ -954,6 +959,85 @@ const AdminDashboard = () => {
                       ))}
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* History Tab */}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Appointment History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Patient Name
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Doctor Name
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date & Time
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Consultation Fee
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Payment Status
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Completed Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {completedAppointments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                            No completed appointments yet
+                          </td>
+                        </tr>
+                      ) : (
+                        completedAppointments.map((appointment) => (
+                          <tr key={appointment.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {appointment.patientName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {appointment.doctorName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              ${appointment.consultationFee || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <Badge className={`
+                                ${appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : ''}
+                                ${appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                                ${appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : ''}
+                                ${!appointment.feeStatus ? 'bg-gray-100 text-gray-800' : ''}
+                              `}>
+                                {appointment.feeStatus || 'Not Set'}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {format(appointment.createdAt, 'PPP')}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
