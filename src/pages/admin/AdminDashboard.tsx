@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Calendar, Clock, User, Phone, Mail, FileText, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { 
   getServices, 
   addService, 
@@ -119,6 +120,43 @@ const AdminDashboard = () => {
 
     fetchData();
   }, []);
+
+  // File upload handler
+  const handleFileUpload = async (file: File, type: 'banner' | 'service' | 'doctor' | 'health-record') => {
+    setUploading(true);
+    try {
+      const imageUrl = await uploadToCloudinary(file);
+      
+      if (type === 'banner') {
+        setHomeContent({ ...homeContent, bannerImage: imageUrl });
+      } else if (type === 'service') {
+        setNewService({ ...newService, image: imageUrl });
+      } else if (type === 'doctor') {
+        setNewDoctor({ ...newDoctor, image: imageUrl });
+      } else if (type === 'health-record') {
+        setNewHealthRecord({ 
+          ...newHealthRecord, 
+          fileUrl: imageUrl,
+          fileName: file.name,
+          fileType: file.type
+        });
+      }
+      
+      toast({
+        title: "File Uploaded",
+        description: "File has been uploaded successfully.",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // --- Home Content Management ---
   const handleUpdateHomeContent = async () => {
@@ -297,13 +335,12 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="home" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="health-records">Health Records</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
 
           {/* Home Content Tab */}
@@ -333,13 +370,24 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="banner-image">Banner Image URL</Label>
-                    <Input
-                      id="banner-image"
-                      value={homeContent.bannerImage}
-                      onChange={(e) => setHomeContent({ ...homeContent, bannerImage: e.target.value })}
-                      placeholder="https://example.com/banner-image.jpg"
-                    />
+                    <Label htmlFor="banner-image">Banner Image</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleFileUpload(file, 'banner');
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                      {uploading && <div className="text-sm text-gray-500">Uploading...</div>}
+                    </div>
+                    {homeContent.bannerImage && (
+                      <img src={homeContent.bannerImage} alt="Banner preview" className="mt-2 h-20 w-32 object-cover rounded" />
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="welcome-message">Welcome Message</Label>
@@ -376,7 +424,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Add Service Form */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Add New Service</h3>
                     <div className="space-y-2">
@@ -397,12 +444,21 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="image">Image URL</Label>
+                        <Label htmlFor="image">Service Image</Label>
                         <Input
-                          id="image"
-                          value={newService.image}
-                          onChange={(e) => setNewService({ ...newService, image: e.target.value })}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, 'service');
+                            }
+                          }}
+                          disabled={uploading}
                         />
+                        {newService.image && (
+                          <img src={newService.image} alt="Service preview" className="mt-2 h-20 w-32 object-cover rounded" />
+                        )}
                       </div>
                       <div>
                         <Label htmlFor="icon">Icon</Label>
@@ -415,7 +471,6 @@ const AdminDashboard = () => {
                       <Button onClick={handleAddService}>Add Service</Button>
                     </div>
                   </div>
-
                   {/* Services List */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Current Services</h3>
@@ -508,7 +563,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Add Doctor Form */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Add New Doctor</h3>
                     <div className="space-y-2">
@@ -537,17 +591,25 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="doctor-image">Image URL</Label>
+                        <Label htmlFor="doctor-image">Doctor Photo</Label>
                         <Input
-                          id="doctor-image"
-                          value={newDoctor.image}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, image: e.target.value })}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, 'doctor');
+                            }
+                          }}
+                          disabled={uploading}
                         />
+                        {newDoctor.image && (
+                          <img src={newDoctor.image} alt="Doctor preview" className="mt-2 h-20 w-32 object-cover rounded" />
+                        )}
                       </div>
                       <Button onClick={handleAddDoctor}>Add Doctor</Button>
                     </div>
                   </div>
-
                   {/* Doctors List */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Current Doctors</h3>
@@ -707,7 +769,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Add Health Record Form */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Add New Health Record</h3>
                     <div className="space-y-2">
@@ -728,36 +789,27 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="record-fileUrl">File URL</Label>
+                        <Label htmlFor="record-file">Upload File</Label>
                         <Input
-                          id="record-fileUrl"
-                          type="url"
-                          value={newHealthRecord.fileUrl}
-                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileUrl: e.target.value })}
+                          type="file"
+                          accept="image/*,application/pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, 'health-record');
+                            }
+                          }}
+                          disabled={uploading}
                         />
-                      </div>
-                      <div>
-                        <Label htmlFor="record-fileName">File Name</Label>
-                        <Input
-                          id="record-fileName"
-                          value={newHealthRecord.fileName}
-                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileName: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="record-fileType">File Type</Label>
-                        <Input
-                          id="record-fileType"
-                          value={newHealthRecord.fileType}
-                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, fileType: e.target.value })}
-                        />
+                        {newHealthRecord.fileUrl && (
+                          <div className="mt-2 text-sm text-green-600">File uploaded: {newHealthRecord.fileName}</div>
+                        )}
                       </div>
                       <Button onClick={handleAddHealthRecord} disabled={uploading}>
                         {uploading ? 'Adding...' : 'Add Health Record'}
                       </Button>
                     </div>
                   </div>
-
                   {/* Health Records List */}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Current Health Records</h3>
@@ -782,71 +834,6 @@ const AdminDashboard = () => {
                       ))}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Messages Tab */}
-          <TabsContent value="messages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Messages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Phone
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Message
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {messages.map((message) => (
-                        <tr key={message.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {message.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {message.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {message.phone}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                            {message.message}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {format(message.createdAt, 'PPP')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteMessage(message.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </CardContent>
             </Card>

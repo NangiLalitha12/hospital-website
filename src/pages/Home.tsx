@@ -1,15 +1,21 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Shield, Users, Clock } from 'lucide-react';
+import { Calendar, Shield, Users, Clock, MessageCircle, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { getHomeContent } from '@/services/firebase';
 import { HomeContent } from '@/types';
 
 const Home = () => {
   const [content, setContent] = useState<HomeContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { type: 'bot', message: 'Hello! How can I help you today?' }
+  ]);
+  const [currentMessage, setCurrentMessage] = useState('');
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -19,6 +25,16 @@ const Home = () => {
     };
     fetchContent();
   }, []);
+
+  const handleSendMessage = () => {
+    if (currentMessage.trim()) {
+      setChatMessages([...chatMessages, 
+        { type: 'user', message: currentMessage },
+        { type: 'bot', message: 'Thank you for your message. Our team will get back to you soon!' }
+      ]);
+      setCurrentMessage('');
+    }
+  };
 
   if (loading) {
     return (
@@ -30,21 +46,29 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section with Background */}
+      <section 
+        className="relative bg-gradient-to-r from-blue-600/90 to-blue-800/90 text-white py-32 bg-cover bg-center bg-blend-overlay"
+        style={{
+          backgroundImage: content?.bannerImage 
+            ? `url(${content.bannerImage})` 
+            : 'url("https://images.unsplash.com/photo-1551190822-a9333d879b1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80")'
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-blue-700/80"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              {content?.bannerTitle || 'Coming Soon'}
+            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in">
+              {content?.bannerTitle || 'Your Trusted Healthcare Partner'}
             </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              {content?.bannerSubtitle || 'Coming Soon'}
+            <p className="text-xl md:text-3xl mb-12 opacity-95 max-w-4xl mx-auto leading-relaxed animate-fade-in">
+              {content?.bannerSubtitle || 'Providing exceptional healthcare services with compassion and expertise'}
             </p>
-            <div className="space-x-4">
-              <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-full transform hover:scale-105 transition-all duration-200 shadow-lg">
                 <Link to="/appointment">Book Appointment</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600">
+              <Button asChild variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold rounded-full transform hover:scale-105 transition-all duration-200">
                 <Link to="/services">Our Services</Link>
               </Button>
             </div>
@@ -53,52 +77,64 @@ const Home = () => {
       </section>
 
       {/* Welcome Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              {content?.welcomeMessage || 'Coming Soon'}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              {content?.welcomeMessage || 'Welcome to Our Healthcare Center'}
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              {content?.introText || 'Coming Soon'}
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              {content?.introText || 'We are committed to providing the highest quality healthcare services with state-of-the-art facilities and compassionate care from our expert medical professionals.'}
             </p>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Us</h2>
+            <p className="text-xl text-gray-600">Experience healthcare excellence with our comprehensive services</p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+            <Card className="text-center p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 to-white">
               <CardContent className="pt-6">
-                <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Easy Booking</h3>
-                <p className="text-gray-600">Schedule appointments online 24/7</p>
+                <div className="bg-blue-100 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <Calendar className="h-10 w-10 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">Easy Booking</h3>
+                <p className="text-gray-600 leading-relaxed">Schedule appointments online 24/7 with our user-friendly booking system</p>
               </CardContent>
             </Card>
 
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+            <Card className="text-center p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 to-white">
               <CardContent className="pt-6">
-                <Users className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Expert Doctors</h3>
-                <p className="text-gray-600">Qualified specialists at your service</p>
+                <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <Users className="h-10 w-10 text-green-600" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">Expert Doctors</h3>
+                <p className="text-gray-600 leading-relaxed">Board-certified specialists with years of experience in their fields</p>
               </CardContent>
             </Card>
 
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+            <Card className="text-center p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-purple-50 to-white">
               <CardContent className="pt-6">
-                <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Secure Records</h3>
-                <p className="text-gray-600">Your health data is safe with us</p>
+                <div className="bg-purple-100 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <Shield className="h-10 w-10 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">Secure Records</h3>
+                <p className="text-gray-600 leading-relaxed">Your health data is protected with advanced security measures</p>
               </CardContent>
             </Card>
 
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+            <Card className="text-center p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-red-50 to-white">
               <CardContent className="pt-6">
-                <Clock className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">24/7 Emergency</h3>
-                <p className="text-gray-600">Round-the-clock emergency care</p>
+                <div className="bg-red-100 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <Clock className="h-10 w-10 text-red-600" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">24/7 Emergency</h3>
+                <p className="text-gray-600 leading-relaxed">Round-the-clock emergency care when you need it most</p>
               </CardContent>
             </Card>
           </div>
@@ -106,15 +142,70 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Take Care of Your Health?</h2>
-          <p className="text-xl mb-8 opacity-90">Book an appointment with our expert doctors today</p>
-          <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-pattern opacity-10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Take Care of Your Health?</h2>
+          <p className="text-xl md:text-2xl mb-12 opacity-90 max-w-3xl mx-auto">Book an appointment with our expert doctors today and experience healthcare excellence</p>
+          <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-10 py-5 text-xl font-semibold rounded-full transform hover:scale-105 transition-all duration-200 shadow-lg">
             <Link to="/appointment">Book Now</Link>
           </Button>
         </div>
       </section>
+
+      {/* Chat Widget */}
+      <div className="fixed bottom-6 left-6 z-50">
+        {!isChatOpen ? (
+          <Button
+            onClick={() => setIsChatOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transform hover:scale-110 transition-all duration-200"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </Button>
+        ) : (
+          <Card className="w-80 h-96 shadow-2xl">
+            <CardContent className="p-0 h-full flex flex-col">
+              <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+                <h3 className="font-semibold">Healthcare Assistant</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsChatOpen(false)}
+                  className="text-white hover:bg-blue-700 p-1"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                {chatMessages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg max-w-xs ${
+                      msg.type === 'user'
+                        ? 'bg-blue-100 text-blue-900 ml-auto'
+                        : 'bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
+                ))}
+              </div>
+              <div className="p-4 border-t flex gap-2">
+                <Input
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="flex-1"
+                />
+                <Button onClick={handleSendMessage} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
