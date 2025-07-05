@@ -244,3 +244,7 @@ export const getPatientAppointments = async (email: string): Promise<Appointment
     return [];
   }
 };
+
+export const deleteAppointment = async (id: string) => {
+  await deleteDoc(doc(db, 'appointments', id));
+};

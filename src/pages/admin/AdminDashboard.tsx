@@ -1,1044 +1,531 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Calendar, Clock, User, Phone, Mail, FileText, Upload, History } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { uploadToCloudinary } from '@/lib/cloudinary';
-import { 
-  getServices, 
-  addService, 
-  updateService, 
-  deleteService,
-  getDoctors,
-  addDoctor,
-  updateDoctor,
-  deleteDoctor,
+import { Calendar, Clock, User, Phone, Mail, DollarSign, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import {
   getAppointments,
   updateAppointmentStatus,
   updateAppointmentFee,
-  getHealthRecords,
-  addHealthRecord,
-  deleteHealthRecord,
-  getMessages,
-  deleteMessage,
-  getHomeContent,
-  updateHomeContent
+  deleteAppointment
 } from '@/services/firebase';
-import { Service, Doctor, Appointment, HealthRecord, ContactMessage, HomeContent } from '@/types';
-import { format } from 'date-fns';
+import { Appointment } from '@/types';
+import { toast } from '@/components/ui/use-toast';
 
 const AdminDashboard = () => {
-  // Home Content State
-  const [homeContent, setHomeContent] = useState<HomeContent>({
-    bannerTitle: '',
-    bannerSubtitle: '',
-    bannerImage: '',
-    welcomeMessage: '',
-    introText: ''
-  });
-
-  // Services State and Functions
-  const [services, setServices] = useState<Service[]>([]);
-  const [newService, setNewService] = useState<Omit<Service, 'id'>>({ 
-    name: '', 
-    description: '', 
-    image: '', 
-    icon: '' 
-  });
-  const [editService, setEditService] = useState<Service | null>(null);
-
-  // Doctors State and Functions
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [newDoctor, setNewDoctor] = useState<Omit<Doctor, 'id'>>({ 
-    name: '', 
-    specialty: '', 
-    bio: '', 
-    image: '', 
-    availability: [], 
-    qualifications: [] 
-  });
-  const [editDoctor, setEditDoctor] = useState<Doctor | null>(null);
-
-  // Appointments State and Functions
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-
-  // Health Records State and Functions
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
-  const [newHealthRecord, setNewHealthRecord] = useState<Omit<HealthRecord, 'id'>>({ 
-    title: '', 
-    description: '', 
-    fileUrl: '', 
-    fileName: '', 
-    fileType: '', 
-    uploadDate: new Date() 
-  });
-  const [uploading, setUploading] = useState(false);
-
-  // Messages State and Functions
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [status, setStatus] = useState<Appointment['status']>('pending');
+  const [appointmentId, setAppointmentId] = useState('');
+  const [fee, setFee] = useState('');
+  const [feeStatus, setFeeStatus] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      console.log('Fetching admin dashboard data...');
-      
-      // Fetch Home Content
-      const homeData = await getHomeContent();
-      console.log('Home content fetched:', homeData);
-      if (homeData) {
-        setHomeContent(homeData);
+    const fetchAppointments = async () => {
+      setLoading(true);
+      try {
+        const appointmentsData = await getAppointments();
+        setAppointments(appointmentsData);
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch appointments",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-
-      // Fetch Services
-      const servicesData = await getServices();
-      console.log('Services fetched:', servicesData);
-      setServices(servicesData);
-
-      // Fetch Doctors
-      const doctorsData = await getDoctors();
-      console.log('Doctors fetched:', doctorsData);
-      setDoctors(doctorsData);
-
-      // Fetch Appointments
-      const appointmentsData = await getAppointments();
-      console.log('Appointments fetched:', appointmentsData);
-      setAppointments(appointmentsData);
-
-      // Fetch Health Records
-      const healthRecordsData = await getHealthRecords();
-      console.log('Health records fetched:', healthRecordsData);
-      setHealthRecords(healthRecordsData);
-
-      // Fetch Messages
-      const messagesData = await getMessages();
-      console.log('Messages fetched:', messagesData);
-      setMessages(messagesData);
     };
 
-    fetchData();
+    fetchAppointments();
   }, []);
 
-  // File upload handler
-  const handleFileUpload = async (file: File, type: 'banner' | 'service' | 'doctor' | 'health-record') => {
-    setUploading(true);
-    try {
-      const imageUrl = await uploadToCloudinary(file);
-      
-      if (type === 'banner') {
-        setHomeContent({ ...homeContent, bannerImage: imageUrl });
-      } else if (type === 'service') {
-        setNewService({ ...newService, image: imageUrl });
-      } else if (type === 'doctor') {
-        setNewDoctor({ ...newDoctor, image: imageUrl });
-      } else if (type === 'health-record') {
-        setNewHealthRecord({ 
-          ...newHealthRecord, 
-          fileUrl: imageUrl,
-          fileName: file.name,
-          fileType: file.type
-        });
-      }
-      
-      toast({
-        title: "File Uploaded",
-        description: "File has been uploaded successfully.",
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload file. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
+  const pendingAppointments = appointments.filter(appointment => appointment.status === 'pending');
+  const confirmedAppointments = appointments.filter(appointment => appointment.status === 'confirmed');
+  const cancelledAppointments = appointments.filter(appointment => appointment.status === 'cancelled');
+  const completedAppointments = appointments.filter(appointment => appointment.status === 'completed');
 
-  // --- Home Content Management ---
-  const handleUpdateHomeContent = async () => {
-    try {
-      await updateHomeContent(homeContent);
-      toast({
-        title: "Home Content Updated",
-        description: "Home page content has been updated successfully.",
-      });
-    } catch (error) {
-      console.error('Error updating home content:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update home content.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // --- Services Management ---
-  const handleAddService = async () => {
-    if (!newService.name || !newService.description) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all fields.",
-        variant: "destructive",
-      });
+  const handleStatusUpdate = async () => {
+    if (!appointmentId || !status) {
+      alert('Please select an appointment and a status.');
       return;
     }
 
-    await addService(newService);
-    const updatedServices = await getServices();
-    setServices(updatedServices);
-    setNewService({ name: '', description: '', image: '', icon: '' });
-    toast({
-      title: "Service Added",
-      description: "New service has been added successfully.",
-    });
-  };
-
-  const handleUpdateService = async () => {
-    if (!editService?.id) return;
-    await updateService(editService.id, editService);
-    const updatedServices = await getServices();
-    setServices(updatedServices);
-    setEditService(null);
-    toast({
-      title: "Service Updated",
-      description: "Service has been updated successfully.",
-    });
-  };
-
-  const handleDeleteService = async (id: string) => {
-    await deleteService(id);
-    const updatedServices = await getServices();
-    setServices(updatedServices);
-    toast({
-      title: "Service Deleted",
-      description: "Service has been deleted successfully.",
-    });
-  };
-
-  // --- Doctors Management ---
-  const handleAddDoctor = async () => {
-    if (!newDoctor.name || !newDoctor.specialty) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    await addDoctor(newDoctor);
-    const updatedDoctors = await getDoctors();
-    setDoctors(updatedDoctors);
-    setNewDoctor({ name: '', specialty: '', bio: '', image: '', availability: [], qualifications: [] });
-    toast({
-      title: "Doctor Added",
-      description: "New doctor has been added successfully.",
-    });
-  };
-
-  const handleUpdateDoctor = async () => {
-    if (!editDoctor?.id) return;
-    await updateDoctor(editDoctor.id, editDoctor);
-    const updatedDoctors = await getDoctors();
-    setDoctors(updatedDoctors);
-    setEditDoctor(null);
-    toast({
-      title: "Doctor Updated",
-      description: "Doctor has been updated successfully.",
-    });
-  };
-
-  const handleDeleteDoctor = async (id: string) => {
-    await deleteDoctor(id);
-    const updatedDoctors = await getDoctors();
-    setDoctors(updatedDoctors);
-    toast({
-      title: "Doctor Deleted",
-      description: "Doctor has been deleted successfully.",
-    });
-  };
-
-  // --- Appointments Management ---
-  const handleUpdateAppointmentStatus = async (id: string, status: Appointment['status']) => {
-    await updateAppointmentStatus(id, status);
-    const updatedAppointments = await getAppointments();
-    setAppointments(updatedAppointments);
-    toast({
-      title: "Appointment Updated",
-      description: "Appointment status has been updated successfully.",
-    });
-  };
-
-  // --- Billing Management ---
-  const handleUpdateAppointmentFee = async (appointmentId: string, fee: number, feeStatus: string, notes?: string) => {
     try {
-      await updateAppointmentFee(appointmentId, fee, feeStatus, notes);
-      const updatedAppointments = await getAppointments();
-      setAppointments(updatedAppointments);
+      await updateAppointmentStatus(appointmentId, status);
+      setAppointments(prev =>
+        prev.map(apt =>
+          apt.id === appointmentId ? { ...apt, status: status } : apt
+        )
+      );
       toast({
-        title: "Fee Updated",
-        description: "Consultation fee has been updated successfully.",
+        title: "Success",
+        description: "Appointment status updated successfully",
       });
     } catch (error) {
-      console.error('Error updating fee:', error);
+      console.error('Error updating appointment status:', error);
       toast({
         title: "Error",
-        description: "Failed to update consultation fee.",
+        description: "Failed to update appointment status",
         variant: "destructive",
       });
     }
   };
 
-  // --- Health Records Management ---
-  const handleAddHealthRecord = async () => {
-    if (!newHealthRecord.title || !newHealthRecord.fileUrl) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
+  const handleFeeUpdate = async () => {
+    if (!appointmentId || !fee || !feeStatus) {
+      alert('Please select an appointment and enter fee details.');
       return;
     }
 
-    setUploading(true);
     try {
-      await addHealthRecord(newHealthRecord);
-      const updatedHealthRecords = await getHealthRecords();
-      setHealthRecords(updatedHealthRecords);
-      setNewHealthRecord({ title: '', description: '', fileUrl: '', fileName: '', fileType: '', uploadDate: new Date() });
+      await updateAppointmentFee(appointmentId, parseFloat(fee), feeStatus, notes);
+      setAppointments(prev =>
+        prev.map(apt =>
+          apt.id === appointmentId ? { ...apt, consultationFee: parseFloat(fee), feeStatus: feeStatus, feeNotes: notes } : apt
+        )
+      );
       toast({
-        title: "Health Record Added",
-        description: "New health record has been added successfully.",
+        title: "Success",
+        description: "Appointment fee updated successfully",
       });
     } catch (error) {
-      console.error("Error adding health record:", error);
+      console.error('Error updating appointment fee:', error);
       toast({
         title: "Error",
-        description: "Failed to add health record.",
+        description: "Failed to update appointment fee",
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
     }
   };
 
-  const handleDeleteHealthRecord = async (id: string) => {
-    await deleteHealthRecord(id);
-    const updatedHealthRecords = await getHealthRecords();
-    setHealthRecords(updatedHealthRecords);
-    toast({
-      title: "Health Record Deleted",
-      description: "Health record has been deleted successfully.",
-    });
-  };
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+      return;
+    }
 
-  // --- Messages Management ---
-  const handleDeleteMessage = async (id: string) => {
-    await deleteMessage(id);
-    const updatedMessages = await getMessages();
-    setMessages(updatedMessages);
-    toast({
-      title: "Message Deleted",
-      description: "Message has been deleted successfully.",
-    });
+    try {
+      await deleteAppointment(appointmentId);
+      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+      toast({
+        title: "Success",
+        description: "Appointment deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete appointment",
+        variant: "destructive",
+      });
+    }
   };
-
-  // Get completed appointments for history
-  const completedAppointments = appointments.filter(apt => apt.status === 'completed');
-  const activeAppointments = appointments.filter(apt => apt.status !== 'completed');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage your hospital website content</p>
+    <div className="min-h-screen py-12 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Admin Dashboard</h1>
+          <p className="text-lg text-gray-600">Manage appointments and system settings</p>
         </div>
 
-        <Tabs defaultValue="home" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="home">Home</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="doctors">Doctors</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="health-records">Health Records</TabsTrigger>
+        <Tabs defaultValue="pending" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-4">
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          {/* Home Content Tab */}
-          <TabsContent value="home">
+          {/* Pending Appointments Tab */}
+          <TabsContent value="pending" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Manage Home Page Content</CardTitle>
+                <CardTitle>Pending Appointments</CardTitle>
+                <CardDescription>Approve or reject new appointments</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="banner-title">Banner Title</Label>
-                    <Input
-                      id="banner-title"
-                      value={homeContent.bannerTitle}
-                      onChange={(e) => setHomeContent({ ...homeContent, bannerTitle: e.target.value })}
-                      placeholder="Your Trusted Healthcare Partner"
-                    />
+                {pendingAppointments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No pending appointments</p>
                   </div>
-                  <div>
-                    <Label htmlFor="banner-subtitle">Banner Subtitle</Label>
-                    <Input
-                      id="banner-subtitle"
-                      value={homeContent.bannerSubtitle}
-                      onChange={(e) => setHomeContent({ ...homeContent, bannerSubtitle: e.target.value })}
-                      placeholder="Providing exceptional healthcare services with compassion and expertise"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="banner-image">Banner Image</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleFileUpload(file, 'banner');
-                          }
-                        }}
-                        disabled={uploading}
-                      />
-                      {uploading && <div className="text-sm text-gray-500">Uploading...</div>}
-                    </div>
-                    {homeContent.bannerImage && (
-                      <img src={homeContent.bannerImage} alt="Banner preview" className="mt-2 h-20 w-32 object-cover rounded" />
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="welcome-message">Welcome Message</Label>
-                    <Input
-                      id="welcome-message"
-                      value={homeContent.welcomeMessage}
-                      onChange={(e) => setHomeContent({ ...homeContent, welcomeMessage: e.target.value })}
-                      placeholder="Welcome to Our Healthcare Center"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="intro-text">Introduction Text</Label>
-                    <Textarea
-                      id="intro-text"
-                      value={homeContent.introText}
-                      onChange={(e) => setHomeContent({ ...homeContent, introText: e.target.value })}
-                      placeholder="We are committed to providing the highest quality healthcare services..."
-                      rows={4}
-                    />
-                  </div>
-                  <Button onClick={handleUpdateHomeContent}>
-                    Update Home Content
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Services Tab */}
-          <TabsContent value="services">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Services</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Add New Service</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <Label htmlFor="name">Name</Label>
-                        <Input
-                          id="name"
-                          value={newService.name}
-                          onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={newService.description}
-                          onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="image">Service Image</Label>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileUpload(file, 'service');
-                            }
-                          }}
-                          disabled={uploading}
-                        />
-                        {newService.image && (
-                          <img src={newService.image} alt="Service preview" className="mt-2 h-20 w-32 object-cover rounded" />
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="icon">Icon</Label>
-                        <Input
-                          id="icon"
-                          value={newService.icon}
-                          onChange={(e) => setNewService({ ...newService, icon: e.target.value })}
-                        />
-                      </div>
-                      <Button onClick={handleAddService}>Add Service</Button>
-                    </div>
-                  </div>
-                  {/* Services List */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Current Services</h3>
-                    <div className="space-y-2">
-                      {services.map((service) => (
-                        <div key={service.id} className="flex items-center justify-between border rounded-md p-2">
+                ) : (
+                  <div className="space-y-4">
+                    {pendingAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="border rounded-lg p-6 bg-yellow-50"
+                      >
+                        <div className="flex justify-between items-start mb-4">
                           <div>
-                            <p className="font-medium">{service.name}</p>
-                            <p className="text-sm text-gray-500">{service.description}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setEditService(service)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteService(service.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Edit Service Modal */}
-                {editService && (
-                  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                      <h3 className="text-lg font-semibold mb-2">Edit Service</h3>
-                      <div className="space-y-2">
-                        <div>
-                          <Label htmlFor="edit-name">Name</Label>
-                          <Input
-                            id="edit-name"
-                            value={editService.name}
-                            onChange={(e) => setEditService({ ...editService, name: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-description">Description</Label>
-                          <Textarea
-                            id="edit-description"
-                            value={editService.description}
-                            onChange={(e) => setEditService({ ...editService, description: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-image">Image URL</Label>
-                          <Input
-                            id="edit-image"
-                            value={editService.image}
-                            onChange={(e) => setEditService({ ...editService, image: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-icon">Icon</Label>
-                          <Input
-                            id="edit-icon"
-                            value={editService.icon}
-                            onChange={(e) => setEditService({ ...editService, icon: e.target.value })}
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="ghost" onClick={() => setEditService(null)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleUpdateService}>Update Service</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Doctors Tab */}
-          <TabsContent value="doctors">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Doctors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Add New Doctor</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <Label htmlFor="doctor-name">Name</Label>
-                        <Input
-                          id="doctor-name"
-                          value={newDoctor.name}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="doctor-specialty">Specialty</Label>
-                        <Input
-                          id="doctor-specialty"
-                          value={newDoctor.specialty}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="doctor-bio">Bio</Label>
-                        <Textarea
-                          id="doctor-bio"
-                          value={newDoctor.bio}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, bio: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="doctor-image">Doctor Photo</Label>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileUpload(file, 'doctor');
-                            }
-                          }}
-                          disabled={uploading}
-                        />
-                        {newDoctor.image && (
-                          <img src={newDoctor.image} alt="Doctor preview" className="mt-2 h-20 w-32 object-cover rounded" />
-                        )}
-                      </div>
-                      <Button onClick={handleAddDoctor}>Add Doctor</Button>
-                    </div>
-                  </div>
-                  {/* Doctors List */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Current Doctors</h3>
-                    <div className="space-y-2">
-                      {doctors.map((doctor) => (
-                        <div key={doctor.id} className="flex items-center justify-between border rounded-md p-2">
-                          <div>
-                            <p className="font-medium">{doctor.name}</p>
-                            <p className="text-sm text-gray-500">{doctor.specialty}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setEditDoctor(doctor)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteDoctor(doctor.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Edit Doctor Modal */}
-                {editDoctor && (
-                  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                      <h3 className="text-lg font-semibold mb-2">Edit Doctor</h3>
-                      <div className="space-y-2">
-                        <div>
-                          <Label htmlFor="edit-doctor-name">Name</Label>
-                          <Input
-                            id="edit-doctor-name"
-                            value={editDoctor.name}
-                            onChange={(e) => setEditDoctor({ ...editDoctor, name: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-doctor-specialty">Specialty</Label>
-                          <Input
-                            id="edit-doctor-specialty"
-                            value={editDoctor.specialty}
-                            onChange={(e) => setEditDoctor({ ...editDoctor, specialty: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-doctor-bio">Bio</Label>
-                          <Textarea
-                            id="edit-doctor-bio"
-                            value={editDoctor.bio}
-                            onChange={(e) => setEditDoctor({ ...editDoctor, bio: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-doctor-image">Image URL</Label>
-                          <Input
-                            id="edit-doctor-image"
-                            value={editDoctor.image}
-                            onChange={(e) => setEditDoctor({ ...editDoctor, image: e.target.value })}
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="ghost" onClick={() => setEditDoctor(null)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleUpdateDoctor}>Update Doctor</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Appointments Tab */}
-          <TabsContent value="appointments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Patient Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Doctor Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date & Time
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {activeAppointments.map((appointment) => (
-                        <tr key={appointment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {appointment.patientName}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.doctorName}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {format(new Date(appointment.date), 'PPP')} at {appointment.time}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <Badge className={`
-                              ${appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' : ''}
-                              ${appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                              ${appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
-                            `}>
-                              {appointment.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <select
-                              className="border rounded px-2 py-1"
-                              value={appointment.status}
-                              onChange={(e) => handleUpdateAppointmentStatus(appointment.id!, e.target.value as Appointment['status'])}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="cancelled">Cancelled</option>
-                              <option value="completed">Completed</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Billing Tab */}
-          <TabsContent value="billing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Patient Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Doctor Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date & Time
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Consultation Fee
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fee Status
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {appointments.filter(apt => apt.status === 'confirmed').map((appointment) => (
-                        <tr key={appointment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {appointment.patientName}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.doctorName}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {format(new Date(appointment.date), 'PPP')} at {appointment.time}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ${appointment.consultationFee || 0}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <Badge className={`
-                              ${appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : ''}
-                              ${appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                              ${appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : ''}
-                              ${!appointment.feeStatus ? 'bg-gray-100 text-gray-800' : ''}
-                            `}>
-                              {appointment.feeStatus || 'Not Set'}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <div className="flex items-center space-x-2">
-                              <Input
-                                type="number"
-                                placeholder="Fee"
-                                className="w-20"
-                                defaultValue={appointment.consultationFee}
-                                id={`fee-${appointment.id}`}
-                              />
-                              <select
-                                className="border rounded px-2 py-1"
-                                defaultValue={appointment.feeStatus || 'pending'}
-                                id={`status-${appointment.id}`}
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="paid">Paid</option>
-                                <option value="waived">Waived</option>
-                              </select>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  const feeInput = document.getElementById(`fee-${appointment.id}`) as HTMLInputElement;
-                                  const statusSelect = document.getElementById(`status-${appointment.id}`) as HTMLSelectElement;
-                                  const fee = parseFloat(feeInput.value) || 0;
-                                  const status = statusSelect.value;
-                                  handleUpdateAppointmentFee(appointment.id!, fee, status, `Updated by admin on ${new Date().toLocaleDateString()}`);
-                                }}
-                              >
-                                Update
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Health Records Tab */}
-          <TabsContent value="health-records">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Health Records</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Add New Health Record</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <Label htmlFor="record-title">Title</Label>
-                        <Input
-                          id="record-title"
-                          value={newHealthRecord.title}
-                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, title: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="record-description">Description</Label>
-                        <Textarea
-                          id="record-description"
-                          value={newHealthRecord.description}
-                          onChange={(e) => setNewHealthRecord({ ...newHealthRecord, description: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="record-file">Upload File</Label>
-                        <Input
-                          type="file"
-                          accept="image/*,application/pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileUpload(file, 'health-record');
-                            }
-                          }}
-                          disabled={uploading}
-                        />
-                        {newHealthRecord.fileUrl && (
-                          <div className="mt-2 text-sm text-green-600">File uploaded: {newHealthRecord.fileName}</div>
-                        )}
-                      </div>
-                      <Button onClick={handleAddHealthRecord} disabled={uploading}>
-                        {uploading ? 'Adding...' : 'Add Health Record'}
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Health Records List */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Current Health Records</h3>
-                    <div className="space-y-2">
-                      {healthRecords.map((record) => (
-                        <div key={record.id} className="flex items-center justify-between border rounded-md p-2">
-                          <div>
-                            <p className="font-medium">{record.title}</p>
-                            <p className="text-sm text-gray-500">{record.description}</p>
-                            <p className="text-xs text-gray-400">{record.fileName}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteHealthRecord(record.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* History Tab */}
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Appointment History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Patient Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Doctor Name
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date & Time
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Consultation Fee
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Payment Status
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Completed Date
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {completedAppointments.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                            No completed appointments yet
-                          </td>
-                        </tr>
-                      ) : (
-                        completedAppointments.map((appointment) => (
-                          <tr key={appointment.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {appointment.patientName}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {appointment.doctorName}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <h3 className="text-lg font-semibold">{appointment.patientName}</h3>
+                            <p className="text-sm text-gray-600">Dr. {appointment.doctorName}</p>
+                            <p className="text-sm text-gray-600">
                               {format(new Date(appointment.date), 'PPP')} at {appointment.time}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              ${appointment.consultationFee || 0}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <Badge className={`
-                                ${appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : ''}
-                                ${appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                ${appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : ''}
-                                ${!appointment.feeStatus ? 'bg-gray-100 text-gray-800' : ''}
-                              `}>
-                                {appointment.feeStatus || 'Not Set'}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {format(appointment.createdAt, 'PPP')}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                            </p>
+                          </div>
+                          <Badge className="bg-yellow-100 text-yellow-800">
+                            Pending
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            {appointment.patientPhone}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            {appointment.patientEmail}
+                          </div>
+                        </div>
+
+                        {appointment.reason && (
+                          <div className="bg-gray-50 p-3 rounded mb-4">
+                            <p className="text-sm">
+                              <strong>Reason:</strong> {appointment.reason}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setAppointmentId(appointment.id!);
+                              setStatus('confirmed');
+                              handleStatusUpdate();
+                            }}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setAppointmentId(appointment.id!);
+                              setStatus('cancelled');
+                              handleStatusUpdate();
+                            }}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteAppointment(appointment.id!)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="mt-4 text-xs text-gray-500">
+                          Booked on: {format(appointment.createdAt, 'PPP p')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Confirmed Appointments Tab */}
+          <TabsContent value="confirmed" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Confirmed Appointments</CardTitle>
+                <CardDescription>Manage upcoming appointments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {confirmedAppointments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No confirmed appointments</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {confirmedAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="border rounded-lg p-6 bg-green-50"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold">{appointment.patientName}</h3>
+                            <p className="text-sm text-gray-600">Dr. {appointment.doctorName}</p>
+                            <p className="text-sm text-gray-600">
+                              {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-green-100 text-green-800">
+                              Confirmed
+                            </Badge>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteAppointment(appointment.id!)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            {appointment.patientPhone}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            {appointment.patientEmail}
+                          </div>
+                        </div>
+
+                        {appointment.reason && (
+                          <div className="bg-gray-50 p-3 rounded mb-4">
+                            <p className="text-sm">
+                              <strong>Reason:</strong> {appointment.reason}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mt-4 text-xs text-gray-500">
+                          Booked on: {format(appointment.createdAt, 'PPP p')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Appointment Fee</CardTitle>
+                <CardDescription>Set or modify consultation fees</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div>
+                  <Label htmlFor="appointmentId">Select Appointment</Label>
+                  <Input
+                    id="appointmentId"
+                    type="text"
+                    placeholder="Enter Appointment ID"
+                    value={appointmentId}
+                    onChange={(e) => setAppointmentId(e.target.value)}
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="fee">Consultation Fee</Label>
+                  <Input
+                    id="fee"
+                    type="number"
+                    placeholder="Enter Fee Amount"
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="feeStatus">Fee Status</Label>
+                  <select
+                    id="feeStatus"
+                    className="w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    value={feeStatus}
+                    onChange={(e) => setFeeStatus(e.target.value)}
+                  >
+                    <option value="">Select Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="waived">Waived</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Input
+                    id="notes"
+                    type="text"
+                    placeholder="Enter Notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handleFeeUpdate}>Update Fee</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Cancelled Appointments Tab */}
+          <TabsContent value="cancelled" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cancelled Appointments</CardTitle>
+                <CardDescription>View cancelled appointments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {cancelledAppointments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No cancelled appointments</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cancelledAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="border rounded-lg p-6 bg-red-50"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold">{appointment.patientName}</h3>
+                            <p className="text-sm text-gray-600">Dr. {appointment.doctorName}</p>
+                            <p className="text-sm text-gray-600">
+                              {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-red-100 text-red-800">
+                              Cancelled
+                            </Badge>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteAppointment(appointment.id!)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            {appointment.patientPhone}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            {appointment.patientEmail}
+                          </div>
+                        </div>
+
+                        {appointment.reason && (
+                          <div className="bg-gray-50 p-3 rounded mb-4">
+                            <p className="text-sm">
+                              <strong>Reason:</strong> {appointment.reason}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mt-4 text-xs text-gray-500">
+                          Booked on: {format(appointment.createdAt, 'PPP p')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* History Section */}
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appointment History</CardTitle>
+                <CardDescription>Completed appointments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {completedAppointments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No completed appointments yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {completedAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="border rounded-lg p-6 bg-green-50"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold">{appointment.patientName}</h3>
+                            <p className="text-sm text-gray-600">Dr. {appointment.doctorName}</p>
+                            <p className="text-sm text-gray-600">
+                              {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-green-100 text-green-800">
+                              Completed
+                            </Badge>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteAppointment(appointment.id!)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            {appointment.patientPhone}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            {appointment.patientEmail}
+                          </div>
+                        </div>
+
+                        {appointment.reason && (
+                          <div className="bg-gray-50 p-3 rounded mb-4">
+                            <p className="text-sm">
+                              <strong>Reason:</strong> {appointment.reason}
+                            </p>
+                          </div>
+                        )}
+
+                        {appointment.consultationFee && appointment.consultationFee > 0 && (
+                          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-900 mb-2">Billing Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              <p><strong>Consultation Fee:</strong> ${appointment.consultationFee}</p>
+                              <p><strong>Payment Status:</strong> 
+                                <Badge className={`ml-2 ${
+                                  appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : 
+                                  appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                  appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : 
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {appointment.feeStatus ? 
+                                    appointment.feeStatus.charAt(0).toUpperCase() + appointment.feeStatus.slice(1) : 
+                                    'Not Set'
+                                  }
+                                </Badge>
+                              </p>
+                            </div>
+                            {appointment.feeNotes && (
+                              <p className="text-sm text-blue-700 mt-2">
+                                <strong>Note:</strong> {appointment.feeNotes}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mt-4 text-xs text-gray-500">
+                          Completed on: {format(appointment.createdAt, 'PPP p')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

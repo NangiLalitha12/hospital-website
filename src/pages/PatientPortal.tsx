@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, User, Phone, Mail, Stethoscope, Heart } from 'lucide-react';
-import { getPatientAppointments, getAppointments, getServices, getDoctors } from '@/services/firebase';
+import { Calendar, Clock, User, Phone, Mail, Stethoscope, Heart, Trash2 } from 'lucide-react';
+import { getPatientAppointments, getAppointments, getServices, getDoctors, deleteAppointment } from '@/services/firebase';
 import { Appointment, Service, Doctor } from '@/types';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -61,6 +61,20 @@ const PatientPortal = () => {
       setSearched(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteAppointment(appointmentId);
+      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      alert('Failed to delete appointment. Please try again.');
     }
   };
 
@@ -161,9 +175,19 @@ const PatientPortal = () => {
                                 </span>
                               </div>
                             </div>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(appointment.status)}>
+                                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                              </Badge>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteAppointment(appointment.id!)}
+                                title="Delete appointment"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
