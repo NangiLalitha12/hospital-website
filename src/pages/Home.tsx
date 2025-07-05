@@ -1,21 +1,16 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Shield, Users, Clock, MessageCircle, X, Send } from 'lucide-react';
+import { Calendar, Shield, Users, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { getHomeContent } from '@/services/firebase';
 import { HomeContent } from '@/types';
+import SmartChat from '@/components/SmartChat';
 
 const Home = () => {
   const [content, setContent] = useState<HomeContent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { type: 'bot', message: 'Hello! How can I help you today?' }
-  ]);
-  const [currentMessage, setCurrentMessage] = useState('');
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -25,16 +20,6 @@ const Home = () => {
     };
     fetchContent();
   }, []);
-
-  const handleSendMessage = () => {
-    if (currentMessage.trim()) {
-      setChatMessages([...chatMessages, 
-        { type: 'user', message: currentMessage },
-        { type: 'bot', message: 'Thank you for your message. Our team will get back to you soon!' }
-      ]);
-      setCurrentMessage('');
-    }
-  };
 
   if (loading) {
     return (
@@ -153,59 +138,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Chat Widget */}
-      <div className="fixed bottom-6 left-6 z-50">
-        {!isChatOpen ? (
-          <Button
-            onClick={() => setIsChatOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transform hover:scale-110 transition-all duration-200"
-          >
-            <MessageCircle className="h-6 w-6" />
-          </Button>
-        ) : (
-          <Card className="w-80 h-96 shadow-2xl">
-            <CardContent className="p-0 h-full flex flex-col">
-              <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
-                <h3 className="font-semibold">Healthcare Assistant</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsChatOpen(false)}
-                  className="text-white hover:bg-blue-700 p-1"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                {chatMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg max-w-xs ${
-                      msg.type === 'user'
-                        ? 'bg-blue-100 text-blue-900 ml-auto'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    {msg.message}
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 border-t flex gap-2">
-                <Input
-                  value={currentMessage}
-                  onChange={(e) => setCurrentMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1"
-                />
-                <Button onClick={handleSendMessage} size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {/* Smart Chat Widget */}
+      <SmartChat />
     </div>
   );
 };
