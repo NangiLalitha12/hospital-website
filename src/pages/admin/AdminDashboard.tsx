@@ -272,6 +272,26 @@ const AdminDashboard = () => {
     });
   };
 
+  // --- Billing Management ---
+  const handleUpdateAppointmentFee = async (appointmentId: string, fee: number, feeStatus: string, notes?: string) => {
+    try {
+      await updateAppointmentFee(appointmentId, fee, feeStatus, notes);
+      const updatedAppointments = await getAppointments();
+      setAppointments(updatedAppointments);
+      toast({
+        title: "Fee Updated",
+        description: "Consultation fee has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating fee:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update consultation fee.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // --- Health Records Management ---
   const handleAddHealthRecord = async () => {
     if (!newHealthRecord.title || !newHealthRecord.fileUrl) {
@@ -335,11 +355,12 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="home" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="health-records">Health Records</TabsTrigger>
           </TabsList>
 
@@ -751,6 +772,103 @@ const AdminDashboard = () => {
                               <option value="confirmed">Confirmed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Billing Tab */}
+          <TabsContent value="billing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Billing Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Patient Name
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Doctor Name
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date & Time
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Consultation Fee
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Fee Status
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {appointments.filter(apt => apt.status === 'confirmed').map((appointment) => (
+                        <tr key={appointment.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {appointment.patientName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {appointment.doctorName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {format(new Date(appointment.date), 'PPP')} at {appointment.time}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${appointment.consultationFee || 0}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <Badge className={`
+                              ${appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : ''}
+                              ${appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                              ${appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : ''}
+                              ${!appointment.feeStatus ? 'bg-gray-100 text-gray-800' : ''}
+                            `}>
+                              {appointment.feeStatus || 'Not Set'}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="number"
+                                placeholder="Fee"
+                                className="w-20"
+                                defaultValue={appointment.consultationFee}
+                                id={`fee-${appointment.id}`}
+                              />
+                              <select
+                                className="border rounded px-2 py-1"
+                                defaultValue={appointment.feeStatus || 'pending'}
+                                id={`status-${appointment.id}`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid</option>
+                                <option value="waived">Waived</option>
+                              </select>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  const feeInput = document.getElementById(`fee-${appointment.id}`) as HTMLInputElement;
+                                  const statusSelect = document.getElementById(`status-${appointment.id}`) as HTMLSelectElement;
+                                  const fee = parseFloat(feeInput.value) || 0;
+                                  const status = statusSelect.value;
+                                  handleUpdateAppointmentFee(appointment.id!, fee, status, `Updated by admin on ${new Date().toLocaleDateString()}`);
+                                }}
+                              >
+                                Update
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

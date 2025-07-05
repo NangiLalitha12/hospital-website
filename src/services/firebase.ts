@@ -217,6 +217,15 @@ export const updateAppointmentStatus = async (id: string, status: Appointment['s
   await updateDoc(docRef, { status });
 };
 
+export const updateAppointmentFee = async (id: string, fee: number, feeStatus: string, notes?: string) => {
+  const docRef = doc(db, 'appointments', id);
+  await updateDoc(docRef, { 
+    consultationFee: fee,
+    feeStatus,
+    feeNotes: notes || ''
+  });
+};
+
 export const getPatientAppointments = async (email: string): Promise<Appointment[]> => {
   try {
     const q = query(

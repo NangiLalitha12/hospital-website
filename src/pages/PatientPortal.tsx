@@ -183,10 +183,45 @@ const PatientPortal = () => {
                           </div>
 
                           {appointment.reason && (
-                            <div className="bg-gray-50 p-3 rounded">
+                            <div className="bg-gray-50 p-3 rounded mb-4">
                               <p className="text-sm">
                                 <strong>Reason for visit:</strong> {appointment.reason}
                               </p>
+                            </div>
+                          )}
+
+                          {/* Billing Information */}
+                          {appointment.consultationFee && appointment.consultationFee > 0 && (
+                            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
+                              <h4 className="font-semibold text-blue-900 mb-2">Billing Information</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <p><strong>Consultation Fee:</strong> ${appointment.consultationFee}</p>
+                                <p><strong>Payment Status:</strong> 
+                                  <Badge className={`ml-2 ${
+                                    appointment.feeStatus === 'paid' ? 'bg-green-100 text-green-800' : 
+                                    appointment.feeStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                    appointment.feeStatus === 'waived' ? 'bg-blue-100 text-blue-800' : 
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {appointment.feeStatus ? 
+                                      appointment.feeStatus.charAt(0).toUpperCase() + appointment.feeStatus.slice(1) : 
+                                      'Not Set'
+                                    }
+                                  </Badge>
+                                </p>
+                              </div>
+                              {appointment.feeNotes && (
+                                <p className="text-sm text-blue-700 mt-2">
+                                  <strong>Note:</strong> {appointment.feeNotes}
+                                </p>
+                              )}
+                              {appointment.feeStatus === 'pending' && (
+                                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                  <p className="text-sm text-yellow-800">
+                                    💰 <strong>Payment Required:</strong> Your consultation fee of ${appointment.consultationFee} is pending. Please contact our billing department to complete the payment.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 

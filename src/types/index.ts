@@ -50,6 +50,9 @@ export interface Appointment {
   reason: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   createdAt: Date;
+  consultationFee?: number;
+  feeStatus?: 'pending' | 'paid' | 'waived';
+  feeNotes?: string;
 }
 
 export interface HealthRecord {
@@ -77,4 +80,19 @@ export interface User {
   email: string;
   phone: string;
   createdAt: Date;
+}
+
+export interface Billing {
+  id?: string;
+  appointmentId: string;
+  patientName: string;
+  patientEmail: string;
+  doctorName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  consultationFee: number;
+  status: 'pending' | 'paid' | 'waived';
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
