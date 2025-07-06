@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,13 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, User, Phone, Mail, DollarSign, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   getAppointments,
   updateAppointmentStatus,
-  updateAppointmentFee,
-  deleteAppointment
+  updateAppointmentFee
 } from '@/services/firebase';
 import { Appointment } from '@/types';
 import { toast } from '@/components/ui/use-toast';
@@ -110,28 +110,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteAppointment = async (appointmentId: string) => {
-    if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await deleteAppointment(appointmentId);
-      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
-      toast({
-        title: "Success",
-        description: "Appointment deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting appointment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete appointment",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen py-12 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -221,13 +199,6 @@ const AdminDashboard = () => {
                           >
                             Reject
                           </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteAppointment(appointment.id!)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
 
                         <div className="mt-4 text-xs text-gray-500">
@@ -268,28 +239,9 @@ const AdminDashboard = () => {
                               {format(new Date(appointment.date), 'PPP')} at {appointment.time}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-green-100 text-green-800">
-                              Confirmed
-                            </Badge>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setAppointmentId(appointment.id!);
-                                setStatus('completed');
-                                handleStatusUpdate();
-                              }}
-                            >
-                              Mark Complete
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteAppointment(appointment.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Badge className="bg-green-100 text-green-800">
+                            Confirmed
+                          </Badge>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -403,18 +355,9 @@ const AdminDashboard = () => {
                               {format(new Date(appointment.date), 'PPP')} at {appointment.time}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-red-100 text-red-800">
-                              Cancelled
-                            </Badge>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteAppointment(appointment.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Badge className="bg-red-100 text-red-800">
+                            Cancelled
+                          </Badge>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -474,18 +417,9 @@ const AdminDashboard = () => {
                               {format(new Date(appointment.date), 'PPP')} at {appointment.time}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-green-100 text-green-800">
-                              Completed
-                            </Badge>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteAppointment(appointment.id!)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Badge className="bg-green-100 text-green-800">
+                            Completed
+                          </Badge>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
