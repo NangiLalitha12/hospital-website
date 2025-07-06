@@ -72,6 +72,7 @@ export interface ContactMessage {
   phone: string;
   message: string;
   createdAt: Date;
+  seen?: boolean;
 }
 
 export interface User {
