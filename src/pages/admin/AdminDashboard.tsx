@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { getAppointments, getMessages } from '@/services/firebase';
-import { Appointment } from '@/types';
+import { Appointment, ContactMessage } from '@/types';
 import { Bell, MessageSquare } from 'lucide-react';
 
 // Import all admin components
@@ -18,7 +18,7 @@ import MessagesManager from '@/components/admin/MessagesManager';
 
 const AdminDashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
-  const [messageCount, setMessageCount] = useState(0);
+  const [unseenMessageCount, setUnseenMessageCount] = useState(0);
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -28,9 +28,10 @@ const AdminDashboard = () => {
         const pending = appointments.filter(apt => apt.status === 'pending');
         setPendingCount(pending.length);
 
-        // Fetch messages count
+        // Fetch unseen messages count
         const messages = await getMessages();
-        setMessageCount(messages.length);
+        const unseenMessages = messages.filter((msg: ContactMessage) => !msg.seen);
+        setUnseenMessageCount(unseenMessages.length);
       } catch (error) {
         console.error('Error fetching counts:', error);
       }
@@ -60,11 +61,11 @@ const AdminDashboard = () => {
                   </Badge>
                 </div>
               )}
-              {messageCount > 0 && (
+              {unseenMessageCount > 0 && (
                 <div className="flex items-center gap-2 bg-orange-100 px-3 py-2 rounded-full">
                   <MessageSquare className="h-5 w-5 text-orange-600" />
                   <Badge className="bg-orange-600 text-white text-sm px-2 py-1">
-                    {messageCount} Messages
+                    {unseenMessageCount} Unseen Messages
                   </Badge>
                 </div>
               )}
@@ -101,9 +102,9 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="messages" className="relative data-[state=active]:bg-orange-600 data-[state=active]:text-white rounded-lg">
                 Messages
-                {messageCount > 0 && (
+                {unseenMessageCount > 0 && (
                   <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs bg-orange-600 text-white">
-                    {messageCount}
+                    {unseenMessageCount}
                   </Badge>
                 )}
               </TabsTrigger>
