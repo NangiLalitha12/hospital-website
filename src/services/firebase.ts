@@ -248,3 +248,44 @@ export const getPatientAppointments = async (email: string): Promise<Appointment
 export const deleteAppointment = async (id: string) => {
   await deleteDoc(doc(db, 'appointments', id));
 };
+
+// Billing
+export const getBillingRecords = async (): Promise<Appointment[]> => {
+  try {
+    const q = query(
+      collection(db, 'appointments'), 
+      where('status', 'in', ['confirmed', 'completed']),
+      orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date()
+    } as Appointment));
+  } catch (error) {
+    console.error('Error fetching billing records:', error);
+    return [];
+  }
+};
+
+export const generateBillingReport = async (startDate: Date, endDate: Date): Promise<Appointment[]> => {
+  try {
+    const q = query(
+      collection(db, 'appointments'),
+      where('status', '==', 'completed'),
+      where('createdAt', '>=', startDate),
+      where('createdAt', '<=', endDate),
+      orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date()
+    } as Appointment));
+  } catch (error) {
+    console.error('Error generating billing report:', error);
+    return [];
+  }
+};
