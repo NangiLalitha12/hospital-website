@@ -11,8 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { getDoctors, addAppointment, addUser, getUserByEmail } from '@/services/firebase';
-import { Doctor } from '@/types';
+import { getDoctors, addAppointment, addUser, getUserByEmail, getAppointments } from '@/services/firebase';
+import { Doctor, Appointment } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 const AppointmentBooking = () => {
@@ -47,6 +47,22 @@ const AppointmentBooking = () => {
     };
     fetchDoctors();
   }, []);
+
+  const checkForDuplicateBooking = async (email: string, date: string, time: string): Promise<boolean> => {
+    try {
+      const allAppointments = await getAppointments();
+      const duplicateAppointment = allAppointments.find(apt => 
+        apt.patientEmail?.toLowerCase() === email.toLowerCase() &&
+        apt.date === date &&
+        apt.time === time &&
+        apt.status !== 'cancelled'
+      );
+      return !!duplicateAppointment;
+    } catch (error) {
+      console.error('Error checking for duplicate bookings:', error);
+      return false;
+    }
+  };
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +127,19 @@ const AppointmentBooking = () => {
     const doctor = doctors.find(d => d.id === selectedDoctor);
     if (!doctor) return;
 
+    const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
+
+    // Check for duplicate booking
+    const isDuplicate = await checkForDuplicateBooking(signupData.email, appointmentDate, selectedTime);
+    if (isDuplicate) {
+      toast({
+        title: "Booking Conflict",
+        description: "You already have an appointment booked for this date and time. Please choose a different slot.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -120,7 +149,7 @@ const AppointmentBooking = () => {
         patientPhone: signupData.phone,
         doctorId: selectedDoctor,
         doctorName: doctor.name,
-        date: format(selectedDate, 'yyyy-MM-dd'),
+        date: appointmentDate,
         time: selectedTime,
         reason: appointmentData.reason,
         status: 'pending',
@@ -316,6 +345,7 @@ const AppointmentBooking = () => {
                 <li>• Bring a valid ID and insurance card</li>
                 <li>• You will receive a confirmation email once approved</li>
                 <li>• You can check your appointment status in the Patient Portal</li>
+                <li>• Each email can only book one appointment per time slot</li>
               </ul>
             </div>
           </CardContent>

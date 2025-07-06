@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, User, Phone, Mail, Stethoscope, Heart, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, Stethoscope, Heart, Trash2, Plus } from 'lucide-react';
 import { getPatientAppointments, getAppointments, getServices, getDoctors, deleteAppointment } from '@/services/firebase';
 import { Appointment, Service, Doctor } from '@/types';
 import { format } from 'date-fns';
@@ -111,7 +111,15 @@ const PatientPortal = () => {
             {/* Email Search */}
             <Card>
               <CardHeader>
-                <CardTitle>Access Your Appointments</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Access Your Appointments
+                  <Button asChild size="sm" className="gap-2">
+                    <Link to="/appointment">
+                      <Plus className="h-4 w-4" />
+                      Book New Appointment
+                    </Link>
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSearch} className="flex gap-4">
@@ -150,6 +158,9 @@ const PatientPortal = () => {
                       <p className="text-xs text-gray-400 mt-2">
                         Email searched: {email}
                       </p>
+                      <Button asChild className="mt-4">
+                        <Link to="/appointment">Book Your First Appointment</Link>
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">

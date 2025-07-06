@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getMessages, deleteMessage } from '@/services/firebase';
+import { getMessages, deleteMessage, updateMessage } from '@/services/firebase';
 import { ContactMessage } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
-import { MessageSquare, Trash2, Mail, Phone, User } from 'lucide-react';
+import { MessageSquare, Trash2, Mail, Phone, User, Eye, EyeOff } from 'lucide-react';
 
 const MessagesManager = () => {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -33,6 +33,8 @@ const MessagesManager = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    
     try {
       await deleteMessage(id);
       toast({
@@ -49,6 +51,25 @@ const MessagesManager = () => {
     }
   };
 
+  const handleMarkAsSeen = async (id: string, currentSeenStatus: boolean) => {
+    try {
+      await updateMessage(id, { seen: !currentSeenStatus });
+      toast({
+        title: "Success",
+        description: currentSeenStatus ? "Message marked as unseen" : "Message marked as seen",
+      });
+      fetchMessages();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update message status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const unseenCount = messages.filter(msg => !msg.seen).length;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -56,10 +77,17 @@ const MessagesManager = () => {
           <MessageSquare className="h-8 w-8 text-orange-600" />
           Messages Management
         </h2>
-        <div className="bg-gradient-to-r from-orange-100 to-yellow-100 px-4 py-2 rounded-lg">
-          <span className="text-orange-800 font-medium">
-            {messages.length} Total Messages
-          </span>
+        <div className="flex gap-4">
+          <div className="bg-gradient-to-r from-red-100 to-pink-100 px-4 py-2 rounded-lg">
+            <span className="text-red-800 font-medium">
+              {unseenCount} Unseen Messages
+            </span>
+          </div>
+          <div className="bg-gradient-to-r from-orange-100 to-yellow-100 px-4 py-2 rounded-lg">
+            <span className="text-orange-800 font-medium">
+              {messages.length} Total Messages
+            </span>
+          </div>
         </div>
       </div>
 
@@ -83,7 +111,11 @@ const MessagesManager = () => {
               {messages.map((message) => (
                 <Card
                   key={message.id}
-                  className="bg-white hover:shadow-md transition-shadow border-l-4 border-l-orange-500"
+                  className={`${
+                    message.seen 
+                      ? 'bg-white hover:shadow-md' 
+                      : 'bg-blue-50 border-l-4 border-l-blue-500 shadow-sm'
+                  } transition-shadow border-l-4 border-l-orange-500`}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
@@ -92,6 +124,11 @@ const MessagesManager = () => {
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />
                             <span className="font-medium text-gray-800">{message.name}</span>
+                            {!message.seen && (
+                              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2">
+                                New
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             <Mail className="h-4 w-4" />
@@ -114,14 +151,24 @@ const MessagesManager = () => {
                         </div>
                       </div>
                       
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(message.id!)}
-                        className="ml-4"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          size="sm"
+                          variant={message.seen ? "outline" : "default"}
+                          onClick={() => handleMarkAsSeen(message.id!, message.seen || false)}
+                          title={message.seen ? "Mark as unseen" : "Mark as seen"}
+                        >
+                          {message.seen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(message.id!)}
+                          title="Delete message"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

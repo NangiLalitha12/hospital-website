@@ -142,12 +142,18 @@ export const getMessages = async (): Promise<ContactMessage[]> => {
 export const addMessage = async (message: Omit<ContactMessage, 'id'>) => {
   await addDoc(collection(db, 'messages'), {
     ...message,
-    createdAt: new Date()
+    createdAt: new Date(),
+    seen: false
   });
 };
 
 export const deleteMessage = async (id: string) => {
   await deleteDoc(doc(db, 'messages', id));
+};
+
+export const updateMessage = async (id: string, updates: Partial<ContactMessage>) => {
+  const docRef = doc(db, 'messages', id);
+  await updateDoc(docRef, updates);
 };
 
 // Users
