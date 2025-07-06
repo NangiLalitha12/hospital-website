@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -274,6 +273,16 @@ const AdminDashboard = () => {
                               Confirmed
                             </Badge>
                             <Button
+                              size="sm"
+                              onClick={() => {
+                                setAppointmentId(appointment.id!);
+                                setStatus('completed');
+                                handleStatusUpdate();
+                              }}
+                            >
+                              Mark Complete
+                            </Button>
+                            <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDeleteAppointment(appointment.id!)}
@@ -344,7 +353,7 @@ const AdminDashboard = () => {
                     id="feeStatus"
                     className="w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                     value={feeStatus}
-                    onChange={(e) => setFeeStatus(e.target.value)}
+                    onChange={(e) => setFeeStatus(e.target.value as 'pending' | 'paid' | 'waived' | '')}
                   >
                     <option value="">Select Status</option>
                     <option value="pending">Pending</option>
