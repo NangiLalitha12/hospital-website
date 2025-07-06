@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ const AdminDashboard = () => {
   const [status, setStatus] = useState<Appointment['status']>('pending');
   const [appointmentId, setAppointmentId] = useState('');
   const [fee, setFee] = useState('');
-  const [feeStatus, setFeeStatus] = useState('');
+  const [feeStatus, setFeeStatus] = useState<'pending' | 'paid' | 'waived' | ''>('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -88,7 +89,12 @@ const AdminDashboard = () => {
       await updateAppointmentFee(appointmentId, parseFloat(fee), feeStatus, notes);
       setAppointments(prev =>
         prev.map(apt =>
-          apt.id === appointmentId ? { ...apt, consultationFee: parseFloat(fee), feeStatus: feeStatus, feeNotes: notes } : apt
+          apt.id === appointmentId ? { 
+            ...apt, 
+            consultationFee: parseFloat(fee), 
+            feeStatus: feeStatus as 'pending' | 'paid' | 'waived', 
+            feeNotes: notes 
+          } : apt
         )
       );
       toast({
