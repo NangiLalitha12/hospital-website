@@ -11,7 +11,7 @@ import {
   where,
   orderBy 
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { HomeContent, Service, Doctor, ContactInfo, Appointment, HealthRecord, ContactMessage, User } from '@/types';
 
@@ -97,7 +97,7 @@ export const updateContactInfo = async (contact: ContactInfo) => {
   await setDoc(docRef, contact, { merge: true });
 };
 
-// Health Records
+// Health Records - Optimized for speed
 export const getHealthRecords = async (): Promise<HealthRecord[]> => {
   try {
     const q = query(collection(db, 'healthRecords'), orderBy('uploadDate', 'desc'));
@@ -116,51 +116,30 @@ export const getHealthRecords = async (): Promise<HealthRecord[]> => {
   }
 };
 
-export const addHealthRecord = async (record: Omit<HealthRecord, 'id'>) => {
-  try {
-    const docRef = await addDoc(collection(db, 'healthRecords'), {
-      ...record,
-      uploadDate: new Date()
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Error adding health record:', error);
-    throw error;
-  }
+export const addHealthRecord = async (record: Omit<HealthRecord, 'id'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, 'healthRecords'), {
+    ...record,
+    uploadDate: new Date()
+  });
+  return docRef.id;
 };
 
 export const updateHealthRecord = async (id: string, record: Partial<HealthRecord>) => {
-  try {
-    const docRef = doc(db, 'healthRecords', id);
-    await updateDoc(docRef, {
-      ...record,
-      updatedAt: new Date()
-    });
-  } catch (error) {
-    console.error('Error updating health record:', error);
-    throw error;
-  }
+  const docRef = doc(db, 'healthRecords', id);
+  await updateDoc(docRef, {
+    ...record,
+    updatedAt: new Date()
+  });
 };
 
 export const deleteHealthRecord = async (id: string) => {
-  try {
-    await deleteDoc(doc(db, 'healthRecords', id));
-  } catch (error) {
-    console.error('Error deleting health record:', error);
-    throw error;
-  }
+  await deleteDoc(doc(db, 'healthRecords', id));
 };
 
 export const uploadHealthRecordFile = async (file: File, fileName: string): Promise<string> => {
-  try {
-    const storageRef = ref(storage, `health-records/${fileName}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
-  }
+  const storageRef = ref(storage, `health-records/${fileName}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  return await getDownloadURL(snapshot.ref);
 };
 
 // Contact Messages

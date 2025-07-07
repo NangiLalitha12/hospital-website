@@ -22,7 +22,7 @@ const HealthRecordsManager = () => {
     description: '',
     file: null as File | null
   });
-  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchRecords();
@@ -34,6 +34,7 @@ const HealthRecordsManager = () => {
       const data = await getHealthRecords();
       setRecords(data);
     } catch (error) {
+      console.error('Error fetching records:', error);
       toast({
         title: "Error",
         description: "Failed to fetch health records",
@@ -47,19 +48,15 @@ const HealthRecordsManager = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this health record?')) return;
     
-    // Optimistic update - remove from UI immediately
-    const originalRecords = [...records];
-    setRecords(prev => prev.filter(record => record.id !== id));
-    
     try {
       await deleteHealthRecord(id);
+      setRecords(prev => prev.filter(record => record.id !== id));
       toast({
         title: "Success",
         description: "Health record deleted successfully",
       });
     } catch (error) {
-      // Revert optimistic update on error
-      setRecords(originalRecords);
+      console.error('Error deleting record:', error);
       toast({
         title: "Error",
         description: "Failed to delete health record",
@@ -71,7 +68,6 @@ const HealthRecordsManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Quick validation
     if (!formData.title.trim() || !formData.description.trim()) {
       toast({
         title: "Error",
@@ -90,7 +86,7 @@ const HealthRecordsManager = () => {
       return;
     }
 
-    setUploading(true);
+    setSaving(true);
 
     try {
       if (editingRecord) {
@@ -100,29 +96,22 @@ const HealthRecordsManager = () => {
           description: formData.description.trim()
         };
 
-        // Optimistic update - update UI immediately
-        const optimisticRecord = { ...editingRecord, ...updateData };
-        setRecords(prev => prev.map(record => 
-          record.id === editingRecord.id ? optimisticRecord : record
-        ));
-
         // Handle file upload if new file selected
         if (formData.file) {
           const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
           updateData.fileUrl = fileUrl;
           updateData.fileName = formData.file.name;
           updateData.fileType = formData.file.type;
-          
-          // Update UI with file info
-          setRecords(prev => prev.map(record => 
-            record.id === editingRecord.id 
-              ? { ...record, ...updateData }
-              : record
-          ));
         }
 
-        // Save to Firebase (runs in background)
         await updateHealthRecord(editingRecord.id!, updateData);
+        
+        // Update local state immediately
+        setRecords(prev => prev.map(record => 
+          record.id === editingRecord.id 
+            ? { ...record, ...updateData }
+            : record
+        ));
 
         toast({
           title: "Success",
@@ -132,7 +121,7 @@ const HealthRecordsManager = () => {
         // Add new record
         const fileUrl = await uploadHealthRecordFile(formData.file!, `${Date.now()}_${formData.file!.name}`);
         
-        const newRecord: Omit<HealthRecord, 'id'> = {
+        const newRecordData: Omit<HealthRecord, 'id'> = {
           title: formData.title.trim(),
           description: formData.description.trim(),
           fileUrl,
@@ -141,18 +130,11 @@ const HealthRecordsManager = () => {
           uploadDate: new Date()
         };
 
-        // Optimistic update - add to UI immediately with temporary ID
-        const tempId = `temp_${Date.now()}`;
-        const optimisticRecord = { ...newRecord, id: tempId };
-        setRecords(prev => [optimisticRecord, ...prev]);
-
-        // Save to Firebase and get real ID
-        const recordId = await addHealthRecord(newRecord);
+        const recordId = await addHealthRecord(newRecordData);
         
-        // Update with real ID
-        setRecords(prev => prev.map(record => 
-          record.id === tempId ? { ...record, id: recordId } : record
-        ));
+        // Add to local state immediately
+        const newRecord = { ...newRecordData, id: recordId };
+        setRecords(prev => [newRecord, ...prev]);
 
         toast({
           title: "Success",
@@ -160,18 +142,18 @@ const HealthRecordsManager = () => {
         });
       }
 
+      // Close dialog and reset form immediately
       setDialogOpen(false);
       resetForm();
     } catch (error) {
-      // Revert optimistic updates on error
-      await fetchRecords();
+      console.error('Error saving record:', error);
       toast({
         title: "Error",
         description: "Failed to save health record. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   };
 
@@ -226,6 +208,7 @@ const HealthRecordsManager = () => {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter record title"
                   required
+                  disabled={saving}
                 />
               </div>
               <div>
@@ -236,6 +219,7 @@ const HealthRecordsManager = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter record description"
                   required
+                  disabled={saving}
                 />
               </div>
               <div>
@@ -248,13 +232,19 @@ const HealthRecordsManager = () => {
                   onChange={handleFileChange}
                   required={!editingRecord}
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  disabled={saving}
                 />
               </div>
               <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? 'Saving...' : editingRecord ? 'Update' : 'Add'}
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : editingRecord ? 'Update' : 'Add'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setDialogOpen(false)}
+                  disabled={saving}
+                >
                   Cancel
                 </Button>
               </div>
