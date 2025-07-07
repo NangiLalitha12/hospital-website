@@ -34,6 +34,7 @@ const HealthRecordsManager = () => {
       const data = await getHealthRecords();
       setRecords(data);
     } catch (error) {
+      console.error('Error fetching records:', error);
       toast({
         title: "Error",
         description: "Failed to fetch health records",
@@ -55,6 +56,7 @@ const HealthRecordsManager = () => {
       });
       fetchRecords();
     } catch (error) {
+      console.error('Error deleting record:', error);
       toast({
         title: "Error",
         description: "Failed to delete health record",
@@ -65,17 +67,49 @@ const HealthRecordsManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
+    
+    // Validation
+    if (!formData.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a title",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a description",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editingRecord && !formData.file) {
+      toast({
+        title: "Error",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
       if (editingRecord) {
+        console.log('Updating existing record:', editingRecord.id);
         // Update existing record
         const updateData: Partial<HealthRecord> = {
-          title: formData.title,
-          description: formData.description
+          title: formData.title.trim(),
+          description: formData.description.trim()
         };
 
         if (formData.file) {
+          console.log('Uploading new file for existing record');
           const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
           updateData.fileUrl = fileUrl;
           updateData.fileName = formData.file.name;
@@ -88,24 +122,16 @@ const HealthRecordsManager = () => {
           description: "Health record updated successfully",
         });
       } else {
+        console.log('Adding new record');
         // Add new record
-        if (!formData.file) {
-          toast({
-            title: "Error",
-            description: "Please select a file to upload",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
+        const fileUrl = await uploadHealthRecordFile(formData.file!, `${Date.now()}_${formData.file!.name}`);
         
         const newRecord: Omit<HealthRecord, 'id'> = {
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           fileUrl,
-          fileName: formData.file.name,
-          fileType: formData.file.type,
+          fileName: formData.file!.name,
+          fileType: formData.file!.type,
           uploadDate: new Date()
         };
 
@@ -120,9 +146,10 @@ const HealthRecordsManager = () => {
       resetForm();
       fetchRecords();
     } catch (error) {
+      console.error('Error saving health record:', error);
       toast({
         title: "Error",
-        description: "Failed to save health record",
+        description: "Failed to save health record. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -150,6 +177,12 @@ const HealthRecordsManager = () => {
     setDialogOpen(true);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    console.log('File selected:', file?.name);
+    setFormData({ ...formData, file });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -174,6 +207,7 @@ const HealthRecordsManager = () => {
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter record title"
                   required
                 />
               </div>
@@ -183,6 +217,7 @@ const HealthRecordsManager = () => {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter record description"
                   required
                 />
               </div>
@@ -193,7 +228,7 @@ const HealthRecordsManager = () => {
                 <Input
                   id="file"
                   type="file"
-                  onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+                  onChange={handleFileChange}
                   required={!editingRecord}
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
