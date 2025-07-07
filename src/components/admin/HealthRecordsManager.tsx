@@ -2,15 +2,27 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getHealthRecords, deleteHealthRecord } from '@/services/firebase';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { getHealthRecords, deleteHealthRecord, addHealthRecord, updateHealthRecord, uploadHealthRecordFile } from '@/services/firebase';
 import { HealthRecord } from '@/types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { FileText, Trash2, Download } from 'lucide-react';
+import { FileText, Trash2, Download, Plus, Edit } from 'lucide-react';
 
 const HealthRecordsManager = () => {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    file: null as File | null
+  });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchRecords();
@@ -33,6 +45,8 @@ const HealthRecordsManager = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this health record?')) return;
+    
     try {
       await deleteHealthRecord(id);
       toast({
@@ -49,10 +63,152 @@ const HealthRecordsManager = () => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploading(true);
+
+    try {
+      if (editingRecord) {
+        // Update existing record
+        const updateData: Partial<HealthRecord> = {
+          title: formData.title,
+          description: formData.description
+        };
+
+        if (formData.file) {
+          const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
+          updateData.fileUrl = fileUrl;
+          updateData.fileName = formData.file.name;
+          updateData.fileType = formData.file.type;
+        }
+
+        await updateHealthRecord(editingRecord.id!, updateData);
+        toast({
+          title: "Success",
+          description: "Health record updated successfully",
+        });
+      } else {
+        // Add new record
+        if (!formData.file) {
+          toast({
+            title: "Error",
+            description: "Please select a file to upload",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
+        
+        const newRecord: Omit<HealthRecord, 'id'> = {
+          title: formData.title,
+          description: formData.description,
+          fileUrl,
+          fileName: formData.file.name,
+          fileType: formData.file.type,
+          uploadDate: new Date()
+        };
+
+        await addHealthRecord(newRecord);
+        toast({
+          title: "Success",
+          description: "Health record added successfully",
+        });
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      fetchRecords();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save health record",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ title: '', description: '', file: null });
+    setEditingRecord(null);
+  };
+
+  const openEditDialog = (record: HealthRecord) => {
+    setEditingRecord(record);
+    setFormData({
+      title: record.title,
+      description: record.description,
+      file: null
+    });
+    setDialogOpen(true);
+  };
+
+  const openAddDialog = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Health Records Management</h2>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Health Record
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {editingRecord ? 'Edit Health Record' : 'Add New Health Record'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="file">
+                  {editingRecord ? 'File (optional - leave empty to keep current file)' : 'File'}
+                </Label>
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+                  required={!editingRecord}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? 'Saving...' : editingRecord ? 'Update' : 'Add'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -95,6 +251,13 @@ const HealthRecordsManager = () => {
                       onClick={() => window.open(record.fileUrl, '_blank')}
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditDialog(record)}
+                    >
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"

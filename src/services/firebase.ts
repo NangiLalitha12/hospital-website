@@ -11,7 +11,8 @@ import {
   where,
   orderBy 
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { HomeContent, Service, Doctor, ContactInfo, Appointment, HealthRecord, ContactMessage, User } from '@/types';
 
 // Home Content
@@ -119,8 +120,19 @@ export const addHealthRecord = async (record: Omit<HealthRecord, 'id'>) => {
   });
 };
 
+export const updateHealthRecord = async (id: string, record: Partial<HealthRecord>) => {
+  const docRef = doc(db, 'healthRecords', id);
+  await updateDoc(docRef, record);
+};
+
 export const deleteHealthRecord = async (id: string) => {
   await deleteDoc(doc(db, 'healthRecords', id));
+};
+
+export const uploadHealthRecordFile = async (file: File, fileName: string): Promise<string> => {
+  const storageRef = ref(storage, `health-records/${fileName}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  return await getDownloadURL(snapshot.ref);
 };
 
 // Contact Messages
