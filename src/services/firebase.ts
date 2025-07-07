@@ -100,20 +100,16 @@ export const updateContactInfo = async (contact: ContactInfo) => {
 // Health Records
 export const getHealthRecords = async (): Promise<HealthRecord[]> => {
   try {
-    console.log('Fetching health records from Firebase...');
     const q = query(collection(db, 'healthRecords'), orderBy('uploadDate', 'desc'));
     const querySnapshot = await getDocs(q);
-    const records = querySnapshot.docs.map(doc => {
+    return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log('Processing record:', doc.id, data);
       return { 
         id: doc.id, 
         ...data,
         uploadDate: data.uploadDate?.toDate ? data.uploadDate.toDate() : new Date(data.uploadDate || Date.now())
       } as HealthRecord;
     });
-    console.log('Fetched health records:', records.length);
-    return records;
   } catch (error) {
     console.error('Error fetching health records:', error);
     return [];
@@ -122,12 +118,10 @@ export const getHealthRecords = async (): Promise<HealthRecord[]> => {
 
 export const addHealthRecord = async (record: Omit<HealthRecord, 'id'>) => {
   try {
-    console.log('Adding health record to Firebase:', record);
     const docRef = await addDoc(collection(db, 'healthRecords'), {
       ...record,
       uploadDate: new Date()
     });
-    console.log('Health record added with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('Error adding health record:', error);
@@ -137,13 +131,11 @@ export const addHealthRecord = async (record: Omit<HealthRecord, 'id'>) => {
 
 export const updateHealthRecord = async (id: string, record: Partial<HealthRecord>) => {
   try {
-    console.log('Updating health record:', id, record);
     const docRef = doc(db, 'healthRecords', id);
     await updateDoc(docRef, {
       ...record,
       updatedAt: new Date()
     });
-    console.log('Health record updated successfully');
   } catch (error) {
     console.error('Error updating health record:', error);
     throw error;
@@ -152,9 +144,7 @@ export const updateHealthRecord = async (id: string, record: Partial<HealthRecor
 
 export const deleteHealthRecord = async (id: string) => {
   try {
-    console.log('Deleting health record:', id);
     await deleteDoc(doc(db, 'healthRecords', id));
-    console.log('Health record deleted successfully');
   } catch (error) {
     console.error('Error deleting health record:', error);
     throw error;
@@ -163,11 +153,9 @@ export const deleteHealthRecord = async (id: string) => {
 
 export const uploadHealthRecordFile = async (file: File, fileName: string): Promise<string> => {
   try {
-    console.log('Uploading file:', fileName, 'Size:', file.size);
     const storageRef = ref(storage, `health-records/${fileName}`);
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
-    console.log('File uploaded successfully, URL:', downloadURL);
     return downloadURL;
   } catch (error) {
     console.error('Error uploading file:', error);

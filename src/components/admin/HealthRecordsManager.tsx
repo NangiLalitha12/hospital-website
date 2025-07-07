@@ -31,12 +31,9 @@ const HealthRecordsManager = () => {
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      console.log('Fetching health records...');
       const data = await getHealthRecords();
-      console.log('Fetched records:', data);
       setRecords(data);
     } catch (error) {
-      console.error('Error fetching records:', error);
       toast({
         title: "Error",
         description: "Failed to fetch health records",
@@ -50,16 +47,19 @@ const HealthRecordsManager = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this health record?')) return;
     
+    // Optimistic update - remove from UI immediately
+    const originalRecords = [...records];
+    setRecords(prev => prev.filter(record => record.id !== id));
+    
     try {
       await deleteHealthRecord(id);
       toast({
         title: "Success",
         description: "Health record deleted successfully",
       });
-      // Immediately update the UI
-      setRecords(prev => prev.filter(record => record.id !== id));
     } catch (error) {
-      console.error('Error deleting record:', error);
+      // Revert optimistic update on error
+      setRecords(originalRecords);
       toast({
         title: "Error",
         description: "Failed to delete health record",
@@ -70,22 +70,12 @@ const HealthRecordsManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
     
-    // Validation
-    if (!formData.title.trim()) {
+    // Quick validation
+    if (!formData.title.trim() || !formData.description.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a title",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.description.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a description",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -104,36 +94,41 @@ const HealthRecordsManager = () => {
 
     try {
       if (editingRecord) {
-        console.log('Updating existing record:', editingRecord.id);
         // Update existing record
         const updateData: Partial<HealthRecord> = {
           title: formData.title.trim(),
           description: formData.description.trim()
         };
 
+        // Optimistic update - update UI immediately
+        const optimisticRecord = { ...editingRecord, ...updateData };
+        setRecords(prev => prev.map(record => 
+          record.id === editingRecord.id ? optimisticRecord : record
+        ));
+
+        // Handle file upload if new file selected
         if (formData.file) {
-          console.log('Uploading new file for existing record');
           const fileUrl = await uploadHealthRecordFile(formData.file, `${Date.now()}_${formData.file.name}`);
           updateData.fileUrl = fileUrl;
           updateData.fileName = formData.file.name;
           updateData.fileType = formData.file.type;
+          
+          // Update UI with file info
+          setRecords(prev => prev.map(record => 
+            record.id === editingRecord.id 
+              ? { ...record, ...updateData }
+              : record
+          ));
         }
 
+        // Save to Firebase (runs in background)
         await updateHealthRecord(editingRecord.id!, updateData);
-        
-        // Update the record in the local state immediately
-        setRecords(prev => prev.map(record => 
-          record.id === editingRecord.id 
-            ? { ...record, ...updateData } 
-            : record
-        ));
 
         toast({
           title: "Success",
           description: "Health record updated successfully",
         });
       } else {
-        console.log('Adding new record');
         // Add new record
         const fileUrl = await uploadHealthRecordFile(formData.file!, `${Date.now()}_${formData.file!.name}`);
         
@@ -146,11 +141,18 @@ const HealthRecordsManager = () => {
           uploadDate: new Date()
         };
 
+        // Optimistic update - add to UI immediately with temporary ID
+        const tempId = `temp_${Date.now()}`;
+        const optimisticRecord = { ...newRecord, id: tempId };
+        setRecords(prev => [optimisticRecord, ...prev]);
+
+        // Save to Firebase and get real ID
         const recordId = await addHealthRecord(newRecord);
         
-        // Add the new record to the local state immediately
-        const recordWithId = { ...newRecord, id: recordId };
-        setRecords(prev => [recordWithId, ...prev]);
+        // Update with real ID
+        setRecords(prev => prev.map(record => 
+          record.id === tempId ? { ...record, id: recordId } : record
+        ));
 
         toast({
           title: "Success",
@@ -161,7 +163,8 @@ const HealthRecordsManager = () => {
       setDialogOpen(false);
       resetForm();
     } catch (error) {
-      console.error('Error saving health record:', error);
+      // Revert optimistic updates on error
+      await fetchRecords();
       toast({
         title: "Error",
         description: "Failed to save health record. Please try again.",
@@ -194,7 +197,6 @@ const HealthRecordsManager = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    console.log('File selected:', file?.name);
     setFormData({ ...formData, file });
   };
 
