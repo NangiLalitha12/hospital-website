@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, FileText, Download } from 'lucide-react';
+import { Shield, FileText, Download, RefreshCw } from 'lucide-react';
 import { getHealthRecords } from '@/services/firebase';
 import { HealthRecord } from '@/types';
 
@@ -10,18 +10,26 @@ const HealthRecords = () => {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      console.log('Fetching health records for patient view...');
+      const recordsData = await getHealthRecords();
+      console.log('Patient view - fetched records:', recordsData);
+      setRecords(recordsData);
+    } catch (error) {
+      console.error('Error fetching health records:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const recordsData = await getHealthRecords();
-        setRecords(recordsData);
-      } catch (error) {
-        console.error('Error fetching health records:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchRecords();
+    
+    // Auto-refresh every 30 seconds to show new records
+    const interval = setInterval(fetchRecords, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -51,10 +59,21 @@ const HealthRecords = () => {
         {/* Available Records */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Available Health Records
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Available Health Records
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchRecords}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (

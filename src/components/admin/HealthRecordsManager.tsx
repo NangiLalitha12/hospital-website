@@ -31,7 +31,9 @@ const HealthRecordsManager = () => {
   const fetchRecords = async () => {
     setLoading(true);
     try {
+      console.log('Fetching health records...');
       const data = await getHealthRecords();
+      console.log('Fetched records:', data);
       setRecords(data);
     } catch (error) {
       console.error('Error fetching records:', error);
@@ -54,7 +56,8 @@ const HealthRecordsManager = () => {
         title: "Success",
         description: "Health record deleted successfully",
       });
-      fetchRecords();
+      // Immediately update the UI
+      setRecords(prev => prev.filter(record => record.id !== id));
     } catch (error) {
       console.error('Error deleting record:', error);
       toast({
@@ -117,6 +120,14 @@ const HealthRecordsManager = () => {
         }
 
         await updateHealthRecord(editingRecord.id!, updateData);
+        
+        // Update the record in the local state immediately
+        setRecords(prev => prev.map(record => 
+          record.id === editingRecord.id 
+            ? { ...record, ...updateData } 
+            : record
+        ));
+
         toast({
           title: "Success",
           description: "Health record updated successfully",
@@ -135,7 +146,12 @@ const HealthRecordsManager = () => {
           uploadDate: new Date()
         };
 
-        await addHealthRecord(newRecord);
+        const recordId = await addHealthRecord(newRecord);
+        
+        // Add the new record to the local state immediately
+        const recordWithId = { ...newRecord, id: recordId };
+        setRecords(prev => [recordWithId, ...prev]);
+
         toast({
           title: "Success",
           description: "Health record added successfully",
@@ -144,7 +160,6 @@ const HealthRecordsManager = () => {
 
       setDialogOpen(false);
       resetForm();
-      fetchRecords();
     } catch (error) {
       console.error('Error saving health record:', error);
       toast({
