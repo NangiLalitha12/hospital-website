@@ -36,42 +36,49 @@ const App = () => (
               <>
                 <Navigation />
                 <Home />
+                <Footer />
               </>
             } />
             <Route path="/services" element={
               <>
                 <Navigation />
                 <Services />
+                <Footer />
               </>
             } />
             <Route path="/doctors" element={
               <>
                 <Navigation />
                 <Doctors />
+                <Footer />
               </>
             } />
             <Route path="/appointment" element={
               <>
                 <Navigation />
                 <AppointmentBooking />
+                <Footer />
               </>
             } />
             <Route path="/patient-portal" element={
               <>
                 <Navigation />
                 <PatientPortal />
+                <Footer />
               </>
             } />
             <Route path="/health-records" element={
               <>
                 <Navigation />
                 <HealthRecords />
+                <Footer />
               </>
             } />
             <Route path="/contact" element={
               <>
                 <Navigation />
                 <Contact />
+                <Footer />
               </>
             } />
 
@@ -84,10 +91,14 @@ const App = () => (
             } />
 
             {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={
+              <>
+                <NotFound />
+                <Footer />
+              </>
+            } />
           </Routes>
-        </BrowserRouter>
-        <Footer />
+          </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
